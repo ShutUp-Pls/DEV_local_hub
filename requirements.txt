@@ -1,0 +1,8 @@
+fastapi
+requests
+beautifulsoup4
+bcrypt
+pyodbc
+uvicorn
+python-dotenv
+lxml
