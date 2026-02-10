@@ -19,6 +19,7 @@ export default function VerificarProducto() {
   // Estados principales
   const [barcode, setBarcode] = useState("");
   const [formData, setFormData] = useState<ProductoFormData | null>(null);
+  const [originalData, setOriginalData] = useState<ProductoFormData | null>(null);
   
   // Estados de UI
   const [loading, setLoading] = useState(false);
@@ -28,6 +29,16 @@ export default function VerificarProducto() {
   // Estados de feedback
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+
+  const normalizeProductData = (data: any): ProductoFormData => {
+    const normalized = { ...data };
+    Object.keys(normalized).forEach((key) => {
+      // Si el valor es null o undefined, lo convertimos en string vacío
+      // De lo contrario, nos aseguramos de que sea un string
+      normalized[key] = normalized[key] != null ? String(normalized[key]) : "";
+    });
+    return normalized as ProductoFormData;
+  };
 
   // Lógica de Búsqueda
   const handleSearch = async (e?: React.FormEvent, codeOverride?: string) => {
@@ -56,7 +67,10 @@ export default function VerificarProducto() {
       const data = await res.json();
 
       if (data.found) {
-        setFormData(data); 
+        const cleanData = normalizeProductData(data);
+        
+        setFormData(cleanData); 
+        setOriginalData({ ...cleanData }); 
       } else {
         setError(data.message || "Producto no encontrado");
       }
@@ -92,6 +106,8 @@ export default function VerificarProducto() {
       
       if (data.success) {
         setSuccessMsg("¡Producto guardado exitosamente!");
+        // CLAVE: Actualizamos el originalData con lo que acabamos de guardar
+        setOriginalData(formData); 
       } else {
         setError(data.message || "No se pudo guardar");
       }
@@ -133,13 +149,12 @@ export default function VerificarProducto() {
           <>
             <ProductForm 
               formData={formData}
+              originalData={originalData} // PASAMOS EL ORIGINAL
               setFormData={setFormData}
               onSave={handleSave}
               onCancel={() => setFormData(null)}
               saving={saving}
             />
-            
-            {/* 2. El feedback de éxito ahora está justo debajo del Form */}
             <Alert message={successMsg} type="success" />
           </>
         )}

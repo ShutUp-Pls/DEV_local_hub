@@ -25,16 +25,45 @@ export interface ProductoFormData {
 
 interface ProductFormProps {
   formData: ProductoFormData;
+  originalData: ProductoFormData | null;
   setFormData: React.Dispatch<React.SetStateAction<ProductoFormData | null>>;
   onSave: () => void;
   onCancel: () => void;
   saving: boolean;
 }
 
-const ProductForm = ({ formData, setFormData, onSave, onCancel, saving }: ProductFormProps) => {
+const ProductForm = ({ formData, originalData, setFormData, onSave, onCancel, saving }: ProductFormProps) => {
   const [subfamilias, setSubfamilias] = useState<{ id: string; nombre: string }[]>([]);
   const [loadingSub, setLoadingSub] = useState(false);
   const [isAdvanced, setIsAdvanced] = useState(false);
+
+  const areEqual = (obj1: ProductoFormData, obj2: ProductoFormData | null) => {
+    if (!obj2) return false;
+
+    const keys = Object.keys(obj1) as Array<keyof ProductoFormData>;
+    
+    return keys.every(key => {
+        const val1 = (obj1[key] ?? "").toString().trim();
+        const val2 = (obj2[key] ?? "").toString().trim();
+        
+        if (val1 === val2) return true;
+
+        const numericFields = ['txtprecio_venta', 'txtprecio_venta_boleta', 'txtstock_critico', 'txtdias_reposion'];
+        
+        if (numericFields.includes(key)) {
+            const num1 = parseFloat(val1.replace(',', '.'));
+            const num2 = parseFloat(val2.replace(',', '.'));
+
+            if (!isNaN(num1) && !isNaN(num2)) {
+                const esIgual = Math.abs(num1 - num2) < 0.5; 
+                return esIgual;
+            }
+        }
+        return false;
+    });
+  };
+
+  const hasChanges = !areEqual(formData, originalData);
 
   const fetchSubfamilias = useCallback(async (familiaId: string) => {
     setLoadingSub(true);
@@ -76,36 +105,27 @@ const ProductForm = ({ formData, setFormData, onSave, onCancel, saving }: Produc
     setFormData((prev) => {
       if (!prev) return null;
       
-      // 1. Actualizamos inmediatamente el campo que el usuario está escribiendo
       const newState = { ...prev, [name]: value };
-      
       const ivaPct = parseFloat(newState.txtporcentaje_iva) || 19;
-      const factor = (ivaPct / 100) + 1; // Generalmente 1.19
+      const factor = (ivaPct / 100) + 1;
       const isAfecto = newState.txtiva === 'S';
-      
-      // Sanitizamos el valor: reemplazamos comas por puntos para el cálculo matemático
+
       const valNumerico = parseFloat(value.replace(',', '.')) || 0;
 
-      // CASO 1: Usuario escribe el Precio NETO
       if (name === 'txtprecio_venta') {
           if (isAfecto) {
               const bruto = valNumerico * factor;
-              // Redondeamos a 2 decimales y asignamos
               newState.txtprecio_venta_boleta = roundToTwo(bruto).toString();
           } else {
-              // Si no es afecto, el bruto es igual al neto
               newState.txtprecio_venta_boleta = value;
           }
       }
 
-      // CASO 2: Usuario escribe el Precio VENTA (Bruto)
       if (name === 'txtprecio_venta_boleta') {
           if (isAfecto) {
               const neto = valNumerico / factor;
-              // Redondeamos a 2 decimales y asignamos
               newState.txtprecio_venta = roundToTwo(neto).toString();
           } else {
-              // Si no es afecto, el neto es igual al bruto
               newState.txtprecio_venta = value;
           }
       }
@@ -188,8 +208,12 @@ const ProductForm = ({ formData, setFormData, onSave, onCancel, saving }: Produc
 
             <button 
                 onClick={onSave}
-                disabled={saving}
-                className="bg-blue-600 px-8 py-3 rounded-xl font-bold text-white hover:bg-blue-500 disabled:opacity-50 transition-colors text-sm min-w-[160px]"
+                disabled={saving || !hasChanges}
+                className={`px-8 py-3 rounded-xl font-bold text-white transition-all text-sm min-w-[160px] ${
+                    !hasChanges || saving
+                    ? "bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700"
+                    : "bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-900/20"
+                }`}
             >
                 {saving ? "Guardando..." : "Guardar Cambios"}
             </button>
