@@ -3,9 +3,11 @@ import os
 
 def export_mdb_structure(file_path, output_txt="estructura_mdb.txt"):
     try:
-        # 1. Obtener nombres de las tablas
-        tables_cmd = subprocess.run(['mdb-tables', '-1', file_path], 
-                                     capture_output=True, text=True, check=True)
+        tables_cmd = subprocess.run(
+            ['mdb-tables', '-1', file_path],
+            capture_output=True, text=True,
+            check=True
+        )
         tables = tables_cmd.stdout.strip().split('\n')
         
         with open(output_txt, 'w', encoding='utf-8') as f:
@@ -13,20 +15,17 @@ def export_mdb_structure(file_path, output_txt="estructura_mdb.txt"):
             f.write("="*50 + "\n")
 
             for table in tables:
-                if not table or table.startswith('MSys'): continue # Ignorar tablas de sistema
-                
-                # 2. Obtener el esquema de cada tabla
+                if not table or table.startswith('MSys'): continue
+
                 schema_cmd = subprocess.run(['mdb-schema', file_path, '--table', table], 
                                              capture_output=True, text=True, check=True)
                 
                 f.write(f"\nTABLA: {table}\n")
                 f.write("-" * (len(table) + 7) + "\n")
                 
-                # Limpiamos el output de mdb-schema para que sea más legible
                 lines = schema_cmd.stdout.split('\n')
                 for line in lines:
                     clean_line = line.strip()
-                    # Filtramos para quedarnos con las líneas que definen columnas
                     if clean_line and not clean_line.startswith(('--', 'CREATE', 'DROP', ')', 'ALTER', 'Text')):
                         f.write(f"  {clean_line}\n")
                 
@@ -34,12 +33,8 @@ def export_mdb_structure(file_path, output_txt="estructura_mdb.txt"):
 
         print(f"✅ Estructura exportada con éxito a: {output_txt}")
 
-    except subprocess.CalledProcessError as e:
-        print(f"❌ Error al ejecutar mdbtools: {e}")
-    except FileNotFoundError:
-        print("❌ Error: mdbtools no está instalado. Ejecuta 'sudo apt install mdbtools'")
+    except subprocess.CalledProcessError as e: print(f"❌ Error al ejecutar mdbtools: {e}")
+    except FileNotFoundError: print("❌ Error: mdbtools no está instalado. Ejecuta 'sudo apt install mdbtools'")
 
-# --- CONFIGURACIÓN ---
-# Asegúrate de que la ruta sea correcta
 ruta_mdb = '/home/shutuppls/Documentos/rjc_prod_f1578.mdb' 
 export_mdb_structure(ruta_mdb)

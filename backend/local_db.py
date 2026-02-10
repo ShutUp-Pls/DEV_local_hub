@@ -4,7 +4,6 @@ import pyodbc
 import os
 from dotenv import load_dotenv
 
-# Cargar variables de entorno para obtener la ruta
 load_dotenv(".env.local")
 
 def obtener_conexion_local():
@@ -14,10 +13,8 @@ def obtener_conexion_local():
         print(f"[!] Error Local DB: No se encuentra el archivo en {db_path}")
         return None
 
-    if platform.system() == 'Windows':
-        driver = "Microsoft Access Driver (*.mdb, *.accdb)"
-    else:
-        driver = "MDBTools"
+    if platform.system() == 'Windows': driver = "Microsoft Access Driver (*.mdb, *.accdb)"
+    else: driver = "MDBTools"
 
     connection_string = f'DRIVER={{{driver}}};DBQ={db_path};'
     
@@ -35,14 +32,11 @@ def sincronizar_producto_local(data: dict):
     print(f"[*] Iniciando sincronización local para ID: {data['txtid_producto']}...")
     
     conn = obtener_conexion_local()
-    if not conn:
-        return False
+    if not conn: return False
 
     cursor = conn.cursor()
 
     try:
-        # Conversión de tipos para coincidir con estructura_mdb.txt
-        # Numeric/Long/Integer requieren números, no strings
         def to_float(val):
             try: return float(str(val).replace(',', '.'))
             except: return 0.0
@@ -51,34 +45,28 @@ def sincronizar_producto_local(data: dict):
             try: return int(val)
             except: return 0
 
-        # Mapeo de valores
-        id_producto = data['txtid_producto'] # Long Integer en DB
-        nombre = data['txtnombre'] # Text(80)
-        codigo = data['txtcodigo'] # Text(50)
-        cod_interno = data['txtcod_interno'] # Text(20)
+        id_producto = data['txtid_producto']
+        nombre = data['txtnombre']
+        codigo = data['txtcodigo']
+        cod_interno = data['txtcod_interno']
         
-        familia = to_int(data['txtfamilia_producto']) # Long Integer
-        subfamilia = to_int(data['txtsubfamilia_producto']) # Long Integer
+        familia = to_int(data['txtfamilia_producto'])
+        subfamilia = to_int(data['txtsubfamilia_producto'])
         
-        unidad = data['txtunidad'] # Text(10)
-        afecto_iva = data['txtiva'] # Text(1)
+        unidad = data['txtunidad']
+        afecto_iva = data['txtiva']
         
-        # En el form es txtid_impuestos1, en DB es id_impuestos (Integer)
         id_impuestos = to_int(data['txtid_impuestos1']) 
         
-        precio_venta = to_float(data['txtprecio_venta']) # Numeric (Neto)
-        precio_venta_boleta = to_float(data['txtprecio_venta_boleta']) # Numeric (Bruto)
+        precio_venta = to_float(data['txtprecio_venta'])
+        precio_venta_boleta = to_float(data['txtprecio_venta_boleta'])
         
-        stock_critico = to_float(data['txtstock_critico']) # Numeric
-        dias_reposion = to_int(data['txtdias_reposion']) # Integer
-        
-        vigente = data['txtvigente'] # Text(1)
-        
-        # Factor compra parece ser el campo usado para 'Comanda Cocina' o similar según contexto
-        factor_compra = to_int(data['txtfactor_compra']) # Integer
+        stock_critico = to_float(data['txtstock_critico'])
+        dias_reposion = to_int(data['txtdias_reposion'])
+        vigente = data['txtvigente']
 
-        # QUERY SQL DE ACTUALIZACIÓN
-        # Access usa ? como placeholder
+        factor_compra = to_int(data['txtfactor_compra'])
+
         sql = """
             UPDATE producto 
             SET 
@@ -112,7 +100,7 @@ def sincronizar_producto_local(data: dict):
             dias_reposion, 
             vigente, 
             factor_compra,
-            id_producto # WHERE clause
+            id_producto
         )
 
         cursor.execute(sql, params)
