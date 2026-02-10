@@ -7,6 +7,7 @@ import Navbar from "../components/Navbar";
 import BarcodeScanner from "./components/BarcodeScanner";
 import SearchBar from "./components/SearchBar";
 import ProductForm, { ProductoFormData } from "./components/ProductForm";
+import Alert from "./components/Alert";
 
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -105,7 +106,6 @@ export default function VerificarProducto() {
     <div className="min-h-screen bg-zinc-950 text-white font-sans pb-20">
       <Navbar userName={session?.user?.name} />
 
-      {/* MODAL ESCÁNER */}
       {showScanner && (
         <BarcodeScanner 
           onScanSuccess={handleScanSuccess} 
@@ -115,11 +115,9 @@ export default function VerificarProducto() {
 
       <main className="max-w-5xl mx-auto p-4 sm:p-8">
         <div className="mb-8">
-          <button onClick={() => router.back()} className="text-zinc-500 hover:text-white mb-2 text-sm">← Volver</button>
-          <h2 className="text-3xl font-bold">Gestión de Producto (RJC)</h2>
+          <h2 className="text-3xl font-bold">Escanear producto</h2>
         </div>
 
-        {/* COMPONENTE DE BÚSQUEDA */}
         <SearchBar 
           barcode={barcode}
           setBarcode={setBarcode}
@@ -128,19 +126,22 @@ export default function VerificarProducto() {
           loading={loading}
         />
 
-        {/* ALERTAS */}
-        {error && <div className="bg-red-900/30 text-red-400 p-4 rounded-xl mb-6 border border-red-800">{error}</div>}
-        {successMsg && <div className="bg-green-900/30 text-green-400 p-4 rounded-xl mb-6 border border-green-800">{successMsg}</div>}
+        {/* Mantenemos el error aquí arriba para fallos de búsqueda */}
+        <Alert message={error} type="error" />
 
-        {/* COMPONENTE DE FORMULARIO */}
         {formData && (
-          <ProductForm 
-            formData={formData}
-            setFormData={setFormData}
-            onSave={handleSave}
-            onCancel={() => setFormData(null)}
-            saving={saving}
-          />
+          <>
+            <ProductForm 
+              formData={formData}
+              setFormData={setFormData}
+              onSave={handleSave}
+              onCancel={() => setFormData(null)}
+              saving={saving}
+            />
+            
+            {/* 2. El feedback de éxito ahora está justo debajo del Form */}
+            <Alert message={successMsg} type="success" />
+          </>
         )}
       </main>
     </div>

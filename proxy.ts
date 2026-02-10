@@ -23,5 +23,9 @@ export default withAuth(
 );
 
 export const config = {
-  matcher: ["/", "/inicio/:path*"],
+  matcher: [
+    "/",
+    "/inicio/:path*",
+    "/verificar-producto/:path*"
+  ],
 };

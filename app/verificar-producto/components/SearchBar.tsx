@@ -16,11 +16,10 @@ const SearchBar = ({ barcode, setBarcode, onSearch, onOpenScanner, loading }: Se
           type="text"
           value={barcode}
           onChange={(e) => setBarcode(e.target.value)}
-          placeholder="Escanear código..."
+          placeholder="Introducir código..."
           className="w-full bg-zinc-950 border border-zinc-700 p-3 pr-12 rounded-xl text-white outline-none focus:border-blue-500"
           onKeyDown={(e) => e.key === "Enter" && onSearch(e)}
         />
-        {/* Botón de la cámara dentro del input */}
         <button
           onClick={onOpenScanner}
           className="absolute right-2 text-zinc-400 hover:text-white p-2 transition-colors"

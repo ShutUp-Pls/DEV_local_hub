@@ -150,7 +150,6 @@ def buscar_producto_detalle(data: rjc.BusquedaRequest):
 
     except Exception as e:
         print(f"Error Deep Search: {e}")
-        rjc.sesion_global_rjc = None
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/guardar-producto")
@@ -187,7 +186,6 @@ def guardar_producto(data: rjc.ProductoForm):
 
     except Exception as e:
         print(f"Error Guardando: {e}")
-        rjc.sesion_global_rjc = None
         raise HTTPException(status_code=500, detail=str(e))
     
 @app.post("/api/obtener-subfamilias")
