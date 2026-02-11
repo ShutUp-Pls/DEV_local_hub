@@ -6,7 +6,7 @@ import BarcodeScanner from "./components/BarcodeScanner";
 import SearchBar from "./components/SearchBar";
 import ProductForm, { ProductoFormData } from "./components/ProductForm";
 import CreateForm from "./components/CreateForm";
-import Alert from "./components/Alert";
+import Alert from "../components/Alert";
 import { useSession } from "next-auth/react";
 
 // Valores por defecto solicitados

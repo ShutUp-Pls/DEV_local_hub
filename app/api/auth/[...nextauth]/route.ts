@@ -1,5 +1,5 @@
 // app/api/auth/[...nextauth]/route.ts
-import NextAuth from "next-auth";
+import NextAuth, { DefaultSession } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
 const handler = NextAuth({
@@ -25,7 +25,6 @@ const handler = NextAuth({
           const user = await res.json();
 
           if (res.ok && user) {
-            // Pasamos la preferencia del usuario al objeto user
             return { 
                 ...user, 
                 remember: credentials?.remember === "true" 
@@ -41,30 +40,41 @@ const handler = NextAuth({
   ],
   callbacks: {
     async jwt({ token, user }) {
+      // 1. Lógica inicial al Loguearse
       if (user) {
         token.username = (user as any).username;
-        token.remember = (user as any).remember; 
+        token.remember = (user as any).remember;
+        
+        const currentTime = Math.floor(Date.now() / 1000);
+        
+        if (token.remember) {
+           token.expiresAt = currentTime + (30 * 24 * 60 * 60); // 30 días
+        } else {
+           token.expiresAt = currentTime + 3600; // 1 hora
+        }
       }
 
-      // Calculamos el tiempo actual
-      const currentTime = Math.floor(Date.now() / 1000);
-      
-      // Si ya existe una expiración previa (token.exp), la respetamos o la sobrescribimos.
-      // Pero para este caso, la definimos fresca en el login:
-
-      if (token.remember) {
-          // Si marcó "Recordar": 30 días
-          // (Si user es undefined, significa que es una sesión ya iniciada, mantenemos la exp)
-          if (user) token.exp = currentTime + (30 * 24 * 60 * 60);
-      } else {
-          // 🧪 MODO EXPERIMENTO: 
-          // Si NO marcó "Recordar": 10 SEGUNDOS
-          if (user) token.exp = currentTime + 10; 
+      // 2. Lógica de validación en cada request (incluyendo refetchInterval)
+      if (token.expiresAt) {
+        const currentTime = Math.floor(Date.now() / 1000);
+        
+        // Si el tiempo actual superó el tiempo de expiración guardado
+        if (currentTime > (token.expiresAt as number)) {
+            // Retornamos un objeto vacío o nulo para invalidar el token
+            return {}; 
+        }
       }
       
       return token;
     },
     async session({ session, token }) {
+      // Si el token no tiene username (porque retornamos {} en jwt al expirar)
+      if (!token || !token.username) {
+         // CORRECCIÓN: Retornar objeto vacío {} en lugar de null.
+         // Retornar 'null' causa el error de cliente; un objeto vacío indica "no autenticado" limpiamente.
+         return {} as any; 
+      }
+
       if (session.user) {
         // @ts-ignore
         session.user.name = token.username;
@@ -77,8 +87,9 @@ const handler = NextAuth({
   },
   session: {
     strategy: "jwt",
-    // Establecemos el máximo absoluto a 30 días. 
-    // La callback JWT reducirá esto si el usuario no eligió "recordarme".
+    // Dejamos el maxAge global en 30 días para que la cookie persista
+    // en el caso de "Recordarme", pero nuestra lógica interna (arriba)
+    // la matará a los 10 segundos si no marcó la casilla.
     maxAge: 30 * 24 * 60 * 60, 
   },
   secret: process.env.NEXTAUTH_SECRET,

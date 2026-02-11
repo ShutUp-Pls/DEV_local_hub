@@ -1,8 +1,11 @@
 import re
+import bcrypt
+
 from bs4 import BeautifulSoup
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-import bcrypt
+from pydantic import BaseModel
+from typing import Optional
 
 import rjc_conexion as rjc
 from local_db import sincronizar_producto_local
@@ -16,6 +19,32 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+class BusquedaRequest(BaseModel):
+    codigo: str
+
+class ProductoForm(BaseModel):
+    txtcodigo: str
+    txtcod_interno: Optional[str] = ""
+    txtnombre: str
+    txtfamilia_producto: str
+    txtsubfamilia_producto: Optional[str] = ""
+    txtunidad: str
+    txtiva: str
+    txtid_impuestos1: Optional[str] = "0"
+    txtprecio_venta: str
+    txtprecio_venta_boleta: str
+    txtstock_critico: str
+    txtdias_reposion: Optional[str] = "0"
+    txtvigente: str
+    txtfactor_compra: Optional[str] = "0"
+    txtid_producto: str
+    txtfecha_creacion: Optional[str] = ""
+    txtporcentaje_iva: Optional[str] = "19"
 
 @app.get("/api/check-rjc")
 def check_rjc_status():
@@ -40,7 +69,7 @@ def check_rjc_status():
         return {"status": "failed", "message": "Fallo la conexión con RJC"}
 
 @app.post("/api/login")
-def login(data: rjc.LoginRequest):
+def login(data: LoginRequest):
     users_db = rjc.cargar_usuarios()
     user = users_db.get(data.username)
     if not user: raise HTTPException(status_code=401, detail="Credenciales incorrectas")
@@ -54,7 +83,7 @@ def login(data: rjc.LoginRequest):
     return {"id": user["username"], "username": user["username"], "status": "active"}
 
 @app.post("/api/buscar-producto")
-def buscar_producto_detalle(data: rjc.BusquedaRequest):
+def buscar_producto_detalle(data: BusquedaRequest):
     session = rjc.get_session()
     
     try:
@@ -151,7 +180,7 @@ def buscar_producto_detalle(data: rjc.BusquedaRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/guardar-producto")
-def guardar_producto(data: rjc.ProductoForm):
+def guardar_producto(data: ProductoForm):
     session = rjc.get_session()
     
     try:
@@ -215,7 +244,7 @@ def obtener_subfamilias(data: dict):
         raise HTTPException(status_code=500, detail=str(e))
     
 @app.post("/api/crear-producto")
-def crear_producto(data: rjc.ProductoForm):
+def crear_producto(data: ProductoForm):
     session = rjc.get_session()
     
     try:

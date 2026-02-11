@@ -2,8 +2,6 @@ import requests
 import json
 
 from fastapi import HTTPException
-from pydantic import BaseModel
-from typing import Optional
 from bs4 import BeautifulSoup
 
 # Constantes de URL
@@ -22,32 +20,6 @@ HEADERS_NAVEGADOR = {
     "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
     "Connection": "keep-alive"
 }
-
-class LoginRequest(BaseModel):
-    username: str
-    password: str
-
-class BusquedaRequest(BaseModel):
-    codigo: str
-
-class ProductoForm(BaseModel):
-    txtcodigo: str
-    txtcod_interno: Optional[str] = ""
-    txtnombre: str
-    txtfamilia_producto: str
-    txtsubfamilia_producto: Optional[str] = ""
-    txtunidad: str
-    txtiva: str
-    txtid_impuestos1: Optional[str] = "0"
-    txtprecio_venta: str
-    txtprecio_venta_boleta: str
-    txtstock_critico: str
-    txtdias_reposion: Optional[str] = "0"
-    txtvigente: str
-    txtfactor_compra: Optional[str] = "0"
-    txtid_producto: str
-    txtfecha_creacion: Optional[str] = ""
-    txtporcentaje_iva: Optional[str] = "19"
 
 def get_session():
     global sesion_global_rjc
