@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import AdvancedProductForm from "./AdvancedProductForm";
 import SimpleProductForm from "./SimpleProductForm";
+import s from "./ProductForm.module.css";
 
 // Exportamos la interfaz para que los hijos puedan usarla
 export interface ProductoFormData {
@@ -95,6 +96,17 @@ const ProductForm = ({ formData, originalData, setFormData, onSave, onCancel, sa
     setFormData((prev) => (prev ? { ...prev, [name]: value } : null));
   };
 
+  // --- NUEVA LÓGICA: Alternar vigencia al hacer click en el badge ---
+  const toggleVigencia = () => {
+    setFormData((prev) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        txtvigente: prev.txtvigente === 'S' ? 'N' : 'S'
+      };
+    });
+  };
+
   const roundToTwo = (num: number) => {
     return Math.round((num + Number.EPSILON) * 100) / 100;
   };
@@ -135,47 +147,53 @@ const ProductForm = ({ formData, originalData, setFormData, onSave, onCancel, sa
   };
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-xl animate-in fade-in slide-in-from-bottom-2">
+    <div className={s.mainCard}>
       
-      {/* --- HEADER REDISEÑADO --- */}
-      <div className="space-y-3 mb-3 border-b border-zinc-800 pb-6">
+      {/* --- HEADER --- */}
+      <div className={s.header}>
         
-        {/* Fila 1: Título e ID */}
-        <div className="flex justify-between items-center">
-          <h3 className="text-xl font-bold text-white">Modificar Producto</h3>
-          <span className="text-zinc-500 text-xs font-mono bg-zinc-950 px-2 py-1 rounded border border-zinc-800">
-            ID: {formData.txtid_producto}
+        {/* Fila 1: Título y CÓDIGO DE BARRAS (Antes ID) */}
+        <div className={s.headerRow}>
+          <h3 className={s.headerTitle}>Modificar Producto</h3>
+          <span className={s.idBadge} title="Código de Barras">
+            CÓDIGO: {formData.txtcodigo || "S/N"}
           </span>
         </div>
 
         {/* Fila 2: Vigencia y Switch Modo */}
-        <div className="flex justify-between items-center">
-          <div className={`px-3 py-1 rounded-full text-[10px] font-bold tracking-wider ${
-              formData.txtvigente === 'S' 
-                ? 'bg-zinc-100/10 text-zinc-300 border border-zinc-500/30' 
-                : 'bg-zinc-800 text-zinc-500 border border-zinc-700'
-            }`}>
+        <div className={s.headerRow}>
+          {/* Badge Vigencia INTERACTIVO */}
+          <div 
+            onClick={toggleVigencia}
+            title="Clic para cambiar estado (Vigente / No Vigente)"
+            className={`${s.statusBadge} ${
+              formData.txtvigente === 'S' ? s.statusActive : s.statusInactive
+            }`}
+          >
             {formData.txtvigente === 'S' ? '● VIGENTE' : '○ NO VIGENTE'}
           </div>
 
+          {/* Switch Modo Completo */}
           <div 
             onClick={() => setIsAdvanced(!isAdvanced)}
-            className="flex items-center gap-3 cursor-pointer group"
-            >
-            <span className={`text-xs font-medium transition-colors ${isAdvanced ? 'text-blue-400' : 'text-zinc-500'}`}>
-                Modo Avanzado
+            className={s.switchContainer}
+          >
+            <span className={`${s.switchLabel} ${isAdvanced ? s.labelActive : s.labelInactive}`}>
+                Modo Completo
             </span>
-            <div className={`relative w-10 h-5 rounded-full transition-colors duration-300 ${isAdvanced ? 'bg-blue-600' : 'bg-zinc-800 border border-zinc-700'}`}>
-                <div className={`absolute top-1 left-1 w-3 h-3 rounded-full transition-transform duration-300 ${
-                isAdvanced ? 'translate-x-5 bg-white' : 'translate-x-0 bg-zinc-500'
-                }`} />
-                </div>
+            
+            <div className={`${s.switchTrack} ${isAdvanced ? s.trackActive : s.trackInactive}`}>
+                <div className={`${s.switchThumb} ${isAdvanced ? s.thumbActive : s.thumbInactive}`} />
             </div>
+          </div>
         </div>
       </div>
 
       {/* --- CONTENIDO DINÁMICO --- */}
-      <div className="min-h-0">
+      <div 
+        className={`min-h-0 ${s.contentAnimate}`} 
+        key={isAdvanced ? 'advanced' : 'simple'}
+      >
         {isAdvanced ? (
           <AdvancedProductForm 
               formData={formData}
@@ -197,27 +215,25 @@ const ProductForm = ({ formData, originalData, setFormData, onSave, onCancel, sa
         )}
       </div>
 
-        {/* --- FOOTER: ACCIONES --- */}
-        <div className="mt-4 pt-4 border-t border-zinc-800 flex justify-end gap-3">
-            <button 
-                onClick={onCancel}
-                className="text-sm px-6 py-3 bg-zinc-800 hover:bg-red-900/30 hover:text-red-400 text-zinc-300 rounded-xl border border-zinc-700 transition-all font-bold"
-            >
-                Cancelar
-            </button>
+      {/* --- FOOTER: ACCIONES --- */}
+      <div className={s.footer}>
+          <button 
+              onClick={onCancel}
+              className={s.btnCancel}
+          >
+              Cancelar
+          </button>
 
-            <button 
-                onClick={onSave}
-                disabled={saving || !hasChanges}
-                className={`px-8 py-3 rounded-xl font-bold text-white transition-all text-sm min-w-[160px] ${
-                    !hasChanges || saving
-                    ? "bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700"
-                    : "bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-900/20"
-                }`}
-            >
-                {saving ? "Guardando..." : "Guardar Cambios"}
-            </button>
-        </div>
+          <button 
+              onClick={onSave}
+              disabled={saving || !hasChanges}
+              className={`${s.btnSave} ${
+                  !hasChanges || saving ? s.btnSaveDisabled : s.btnSaveActive
+              }`}
+          >
+              {saving ? "Guardando..." : "Guardar Cambios"}
+          </button>
+      </div>
     </div>
   );
 };
