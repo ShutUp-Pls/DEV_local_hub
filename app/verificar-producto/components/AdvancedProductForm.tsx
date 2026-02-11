@@ -1,6 +1,6 @@
 import React from "react";
 import { FAMILIAS, IMPUESTOS_ADICIONALES, UNIDADES } from "../utils/productConstants";
-import { ProductoFormData } from "./ProductForm"; // Asumimos que la interfaz se exporta desde el padre o un archivo de tipos
+import { ProductoFormData } from "./ProductForm";
 
 interface AdvancedProductFormProps {
   formData: ProductoFormData;
@@ -20,174 +20,176 @@ const AdvancedProductForm = ({
   loadingSub,
 }: AdvancedProductFormProps) => {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in zoom-in-95 duration-300">
+    // CAMBIO: gap-8 a gap-4 para reducir la separación entre columnas
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 animate-in fade-in zoom-in-95 duration-300">
+      
       {/* --- COLUMNA IZQUIERDA: INFORMACIÓN BASE --- */}
-      <div className="lg:col-span-7 space-y-5">
-        <div className="space-y-4">
-          {/* Nombre */}
+      {/* CAMBIO: space-y-5 a space-y-3 para igualar el 'gap-3' de SimpleProductForm */}
+      <div className="lg:col-span-7 space-y-3">
+        
+        {/* Nombre */}
+        <div>
+          {/* CAMBIO: ml-1 añadido para alinear con el estilo de Simple */}
+          <label className="block text-zinc-400 text-xs mb-1 ml-1 font-normal">
+            Nombre del Producto
+          </label>
+          <input
+            name="txtnombre"
+            value={formData.txtnombre}
+            onChange={handleChange}
+            // CAMBIO: border-zinc-700 a zinc-800, p-2.5 a p-2
+            className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-sm text-white focus:border-zinc-500 outline-none transition-all"
+          />
+        </div>
+
+        {/* Códigos */}
+        {/* CAMBIO: gap-4 a gap-3 */}
+        <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-blue-400 text-xs mb-1.5 ml-1">
-              Nombre del Producto
+            <label className="block text-zinc-400 text-xs mb-1 ml-1 font-normal">
+              Código Barra
             </label>
             <input
-              name="txtnombre"
-              value={formData.txtnombre}
-              onChange={handleChange}
-              className="w-full bg-zinc-950 border border-zinc-700 rounded-lg p-2.5 text-white focus:border-blue-500 outline-none transition-all"
+              name="txtcodigo"
+              value={formData.txtcodigo}
+              readOnly
+              className="w-full bg-zinc-900/50 border border-zinc-800 text-zinc-500 rounded-lg p-2 text-xs cursor-not-allowed font-mono"
             />
           </div>
-
-          {/* Códigos */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-blue-400 text-xs mb-1.5 ml-1">
-                Código Barra
-              </label>
-              <input
-                name="txtcodigo"
-                value={formData.txtcodigo}
-                readOnly
-                className="w-full bg-zinc-900/50 border border-zinc-800 text-zinc-500 rounded-lg p-2.5 cursor-not-allowed"
-              />
-            </div>
-            <div>
-              <label className="block text-blue-400 text-xs mb-1.5 ml-1">
-                Cód. Interno
-              </label>
-              <input
-                name="txtcod_interno"
-                value={formData.txtcod_interno}
-                onChange={handleChange}
-                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg p-2.5 text-white outline-none focus:border-blue-500"
-              />
-            </div>
+          <div>
+            <label className="block text-zinc-400 text-xs mb-1 ml-1 font-normal">
+              Cód. Interno
+            </label>
+            <input
+              name="txtcod_interno"
+              value={formData.txtcod_interno}
+              onChange={handleChange}
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-sm text-white outline-none focus:border-zinc-500"
+            />
           </div>
+        </div>
 
-          {/* Familias */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-blue-400 text-xs mb-1.5 ml-1">
-                Familia
-              </label>
-              <select
-                name="txtfamilia_producto"
-                value={formData.txtfamilia_producto}
-                onChange={(e) => {
-                  handleChange(e);
-                  setFormData((prev) =>
-                    prev ? { ...prev, txtsubfamilia_producto: "" } : null
-                  );
-                }}
-                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg p-2.5 text-white outline-none focus:border-blue-500 appearance-none"
-              >
-                <option value="0">Seleccione...</option>
-                {FAMILIAS.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {f.nombre}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-blue-400 text-xs mb-1.5 ml-1 flex justify-between">
-                Sub Familia
-                {loadingSub && (
-                  <span className="text-blue-400 animate-pulse">
-                    Cargando...
-                  </span>
-                )}
-              </label>
-              <select
-                name="txtsubfamilia_producto"
-                value={formData.txtsubfamilia_producto}
-                onChange={handleChange}
-                disabled={loadingSub || subfamilias.length === 0}
-                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg p-2.5 text-white outline-none focus:border-blue-500 appearance-none disabled:opacity-50"
-              >
-                <option value="">Seleccione...</option>
-                {subfamilias.map((sf) => (
-                  <option key={sf.id} value={sf.id}>
-                    {sf.nombre}
-                  </option>
-                ))}
-              </select>
-            </div>
+        {/* Familias */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-zinc-400 text-xs mb-1 ml-1 font-normal">
+              Familia
+            </label>
+            <select
+              name="txtfamilia_producto"
+              value={formData.txtfamilia_producto}
+              onChange={(e) => {
+                handleChange(e);
+                setFormData((prev) =>
+                  prev ? { ...prev, txtsubfamilia_producto: "" } : null
+                );
+              }}
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-white outline-none focus:border-zinc-500 appearance-none"
+            >
+              <option value="0">Seleccione...</option>
+              {FAMILIAS.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.nombre}
+                </option>
+              ))}
+            </select>
           </div>
+          <div>
+            <label className="block text-zinc-400 text-xs mb-1 ml-1 font-normal">
+              Sub Familia
+              {loadingSub && (
+                <span className="text-zinc-500 animate-pulse ml-2">...</span>
+              )}
+            </label>
+            <select
+              name="txtsubfamilia_producto"
+              value={formData.txtsubfamilia_producto}
+              onChange={handleChange}
+              disabled={loadingSub || subfamilias.length === 0}
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-white outline-none focus:border-zinc-500 appearance-none disabled:opacity-30"
+            >
+              <option value="">Seleccione...</option>
+              {subfamilias.map((sf) => (
+                <option key={sf.id} value={sf.id}>
+                  {sf.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
 
-          {/* Unidad y Vigencia */}
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="block text-blue-400 text-xs mb-1.5 ml-1">
-                Unidad
-              </label>
-              <input
-                name="txtunidad"
-                list="unidades-list"
-                value={formData.txtunidad}
-                onChange={handleChange}
-                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg p-2.5 text-center uppercase"
-              />
-              <datalist id="unidades-list">
-                {UNIDADES.map((u) => (
-                  <option key={u} value={u} />
-                ))}
-              </datalist>
-            </div>
-            <div>
-              <label className="block text-blue-400 text-xs mb-1.5 ml-1">
-                Estado
-              </label>
-              <select
-                name="txtvigente"
-                value={formData.txtvigente}
-                onChange={handleChange}
-                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg p-2.5 outline-none"
-              >
-                <option value="S">Vigente</option>
-                <option value="N">No Vigente</option>
-              </select>
-            </div>
-            <div>
-              <label
-                className="block text-blue-400 text-xs mb-1.5 ml-1"
-                title="Incluir Comanda Cocina"
-              >
-                Comanda C.
-              </label>
-              <select
-                name="txtfactor_compra"
-                value={formData.txtfactor_compra}
-                onChange={handleChange}
-                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg p-2.5 outline-none"
-              >
-                <option value="1">SI</option>
-                <option value="0">NO</option>
-              </select>
-            </div>
+        {/* Unidad y Vigencia */}
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <label className="block text-zinc-400 text-xs mb-1 ml-1 font-normal">
+              Unidad
+            </label>
+            <input
+              name="txtunidad"
+              list="unidades-list"
+              value={formData.txtunidad}
+              onChange={handleChange}
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-center uppercase text-white outline-none focus:border-zinc-500"
+            />
+            <datalist id="unidades-list">
+              {UNIDADES.map((u) => (
+                <option key={u} value={u} />
+              ))}
+            </datalist>
+          </div>
+          <div>
+            <label className="block text-zinc-400 text-xs mb-1 ml-1 font-normal">
+              Estado
+            </label>
+            <select
+              name="txtvigente"
+              value={formData.txtvigente}
+              onChange={handleChange}
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-white outline-none focus:border-zinc-500 appearance-none"
+            >
+              <option value="S">Vigente</option>
+              <option value="N">No Vigente</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-zinc-400 text-xs mb-1 ml-1 font-normal" title="Incluir Comanda Cocina">
+              Comanda C.
+            </label>
+            <select
+              name="txtfactor_compra"
+              value={formData.txtfactor_compra}
+              onChange={handleChange}
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-white outline-none focus:border-zinc-500 appearance-none"
+            >
+              <option value="1">SI</option>
+              <option value="0">NO</option>
+            </select>
           </div>
         </div>
       </div>
 
       {/* --- COLUMNA DERECHA: PRECIOS E IMPUESTOS --- */}
-      <div className="lg:col-span-5 bg-zinc-950/50 p-6 rounded-xl border border-zinc-800 h-fit">
-        <h4 className="text-zinc-400 text-sm font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
-          <span>💰</span> Precios e Impuestos
+      {/* CAMBIO: p-6 a p-4 para reducir margen interno y alinearlo visualmente */}
+      <div className="lg:col-span-5 bg-zinc-900/30 p-4 rounded-xl border border-zinc-800/50 h-fit">
+        <h4 className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-3 flex items-center gap-2">
+          <span className="text-xs">💰</span> Precios e Impuestos
         </h4>
 
-        <div className="space-y-5">
+        {/* CAMBIO: space-y-5 a space-y-3 */}
+        <div className="space-y-3">
           {/* Afecto a IVA */}
           <div>
-            <label className="block text-blue-400 text-xs font-medium mb-1.5 ml-1">
+            <label className="block text-zinc-400 text-xs mb-1 ml-1 font-normal">
                 ¿Afecto a IVA? (19%)
             </label>
-            <div className="flex gap-2 h-[42px]">
+            <div className="flex gap-2 h-[38px]">
                 {["S", "N"].map((opcion) => (
                 <label
                     key={opcion}
-                    className={`flex-1 flex items-center justify-center cursor-pointer border rounded-lg transition-all text-sm font-medium ${
+                    className={`flex-1 flex items-center justify-center cursor-pointer border rounded-lg transition-all text-xs font-medium ${
                     formData.txtiva === opcion
-                        ? "bg-blue-600/20 border-blue-500 text-blue-300"
-                        : "bg-zinc-950 border-zinc-800 text-zinc-500 hover:bg-zinc-900 hover:border-zinc-700"
+                        ? "bg-zinc-800 border-zinc-500 text-white"
+                        : "bg-zinc-950 border-zinc-800 text-zinc-600 hover:bg-zinc-900"
                     }`}
                 >
                     <input
@@ -206,14 +208,15 @@ const AdvancedProductForm = ({
 
           {/* Impuesto Adicional */}
           <div>
-            <label className="block text-blue-400 text-xs mb-1.5">
+            <label className="block text-zinc-400 text-xs mb-1 ml-1 font-normal">
               Impuesto Adicional (ILA)
             </label>
+            {/* CAMBIO: forzar h-[38px] */}
             <select
               name="txtid_impuestos1"
               value={formData.txtid_impuestos1}
               onChange={handleChange}
-              className="w-full bg-zinc-900 border border-zinc-700 rounded-lg p-2.5 text-sm text-zinc-300 outline-none focus:border-blue-500"
+              className="w-full h-[38px] bg-zinc-950 border border-zinc-800 rounded-lg px-2 text-xs text-white outline-none focus:border-zinc-500 appearance-none"
             >
               {IMPUESTOS_ADICIONALES.map((imp) => (
                 <option key={imp.id} value={imp.id}>
@@ -223,59 +226,56 @@ const AdvancedProductForm = ({
             </select>
           </div>
 
-          <div className="h-px bg-zinc-800 my-4"></div>
+          <div className="h-px bg-zinc-800/50 my-2"></div>
 
           {/* Precios */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-blue-400 text-xs mb-1.5 font-bold">
+              <label className="block text-zinc-400 text-xs mb-1 ml-1 font-normal">
                 Precio NETO
               </label>
               <input
                 name="txtprecio_venta"
                 value={formData.txtprecio_venta}
                 onChange={handlePriceChange}
-                className="w-full bg-zinc-900 border border-zinc-700 rounded-lg p-2 font-mono text-right outline-none focus:border-blue-500 text-lg"
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 font-mono text-right text-sm text-zinc-300 outline-none focus:border-zinc-500"
               />
             </div>
             <div>
-              <label className="block text-green-400 text-xs mb-1.5 font-bold">
+              <label className="block text-zinc-400 text-xs mb-1 ml-1 font-normal">
                 Precio FINAL (Bruto)
               </label>
               <input
                 name="txtprecio_venta_boleta"
                 value={formData.txtprecio_venta_boleta}
                 onChange={handlePriceChange}
-                className="w-full bg-zinc-900 border border-zinc-700 rounded-lg p-2 font-mono text-right font-bold text-white outline-none focus:border-green-500 text-lg"
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 font-mono text-right font-bold text-white outline-none focus:border-zinc-500 text-sm"
               />
             </div>
           </div>
-          <p className="text-right text-[10px] text-zinc-600 mt-1">
-            * El precio final incluye IVA e Impuestos Adicionales
-          </p>
-
+          
           {/* Stock */}
-          <div className="grid grid-cols-2 gap-4 pt-2">
+          <div className="grid grid-cols-2 gap-3 pt-1">
             <div>
-              <label className="block text-blue-400 text-xs mb-1">
+              <label className="block text-zinc-400 text-xs mb-1 ml-1 font-normal">
                 Stock Crítico
               </label>
               <input
                 name="txtstock_critico"
                 value={formData.txtstock_critico}
                 onChange={handleChange}
-                className="w-full bg-zinc-900 border border-zinc-700 rounded-lg p-2 text-center"
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-center text-xs text-white outline-none"
               />
             </div>
             <div>
-              <label className="block text-blue-400 text-xs mb-1">
+              <label className="block text-zinc-400 text-xs mb-1 ml-1 font-normal">
                 Días Reposición
               </label>
               <input
                 name="txtdias_reposion"
                 value={formData.txtdias_reposion}
                 onChange={handleChange}
-                className="w-full bg-zinc-900 border border-zinc-700 rounded-lg p-2 text-center"
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-center text-xs text-white outline-none"
               />
             </div>
           </div>

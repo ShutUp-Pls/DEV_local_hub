@@ -138,7 +138,7 @@ const ProductForm = ({ formData, originalData, setFormData, onSave, onCancel, sa
     <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-xl animate-in fade-in slide-in-from-bottom-2">
       
       {/* --- HEADER REDISEÑADO --- */}
-      <div className="space-y-4 mb-8 border-b border-zinc-800 pb-6">
+      <div className="space-y-3 mb-3 border-b border-zinc-800 pb-6">
         
         {/* Fila 1: Título e ID */}
         <div className="flex justify-between items-center">
@@ -151,10 +151,10 @@ const ProductForm = ({ formData, originalData, setFormData, onSave, onCancel, sa
         {/* Fila 2: Vigencia y Switch Modo */}
         <div className="flex justify-between items-center">
           <div className={`px-3 py-1 rounded-full text-[10px] font-bold tracking-wider ${
-            formData.txtvigente === 'S' 
-              ? 'bg-green-900/20 text-green-500 border border-green-900/50' 
-              : 'bg-red-900/20 text-red-500 border border-red-900/50'
-          }`}>
+              formData.txtvigente === 'S' 
+                ? 'bg-zinc-100/10 text-zinc-300 border border-zinc-500/30' 
+                : 'bg-zinc-800 text-zinc-500 border border-zinc-700'
+            }`}>
             {formData.txtvigente === 'S' ? '● VIGENTE' : '○ NO VIGENTE'}
           </div>
 
@@ -175,7 +175,7 @@ const ProductForm = ({ formData, originalData, setFormData, onSave, onCancel, sa
       </div>
 
       {/* --- CONTENIDO DINÁMICO --- */}
-      <div className="min-h-[300px]">
+      <div className="min-h-0">
         {isAdvanced ? (
           <AdvancedProductForm 
               formData={formData}
@@ -198,7 +198,7 @@ const ProductForm = ({ formData, originalData, setFormData, onSave, onCancel, sa
       </div>
 
         {/* --- FOOTER: ACCIONES --- */}
-        <div className="mt-10 pt-6 border-t border-zinc-800 flex justify-end gap-3">
+        <div className="mt-4 pt-4 border-t border-zinc-800 flex justify-end gap-3">
             <button 
                 onClick={onCancel}
                 className="text-sm px-6 py-3 bg-zinc-800 hover:bg-red-900/30 hover:text-red-400 text-zinc-300 rounded-xl border border-zinc-700 transition-all font-bold"

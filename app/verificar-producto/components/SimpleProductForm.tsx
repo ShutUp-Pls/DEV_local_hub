@@ -23,94 +23,115 @@ const SimpleProductForm = ({
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in duration-300">
+    // CAMBIO: Se eliminó 'max-w-2xl' y 'mx-auto' para que ocupe el 100% del ancho como el Avanzado.
+    // CAMBIO: space-y-4 a space-y-3 para igualar la densidad del Avanzado.
+    <div className="w-full space-y-3 animate-in fade-in duration-300">
       
       {/* SECCIÓN PRINCIPAL: Nombre y Precio */}
-      <div className="grid grid-cols-1 gap-5 px-1">
+      {/* CAMBIO: Se eliminó 'px-1' que causaba que se viera más angosto que el avanzado */}
+      <div className="grid grid-cols-1 gap-3">
         <div>
-          <label className="block text-blue-400 text-xs font-medium mb-1.5 ml-1">
+          <label className="block text-zinc-400 text-xs font-normal mb-1 ml-1">
             Nombre del Producto
           </label>
           <input
             name="txtnombre"
             value={formData.txtnombre}
             onChange={handleChange}
-            className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-white outline-none focus:border-blue-500/50 transition-colors"
+            className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-sm text-white outline-none focus:border-zinc-500 transition-colors"
             placeholder="Ej: Coca Cola 3L"
           />
         </div>
 
-        <div>
-          <label className="block text-green-400 text-xs font-bold mb-1.5 ml-1">
-            Precio Venta
-          </label>
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600">
-              $
-            </span>
-            <input
-              name="txtprecio_venta_boleta"
-              value={formData.txtprecio_venta_boleta}
-              onChange={handlePriceChange}
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 pl-8 text-white outline-none focus:border-blue-500/50 transition-colors font-mono"
-            />
+        {/* Fila de Precio y Estado */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-zinc-400 text-xs font-normal mb-1 ml-1">
+              Precio Venta
+            </label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600 text-sm">
+                $
+              </span>
+              <input
+                name="txtprecio_venta_boleta"
+                value={formData.txtprecio_venta_boleta}
+                onChange={handlePriceChange}
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 pl-7 text-sm text-white outline-none focus:border-zinc-500 transition-colors font-mono"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-zinc-400 text-xs font-normal mb-1 ml-1">
+              Estado del Producto
+            </label>
+            <select
+              name="txtvigente"
+              value={formData.txtvigente}
+              onChange={handleChange}
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-sm text-white outline-none focus:border-zinc-500 appearance-none"
+            >
+              <option value="S">Vigente</option>
+              <option value="N">No Vigente</option>
+            </select>
           </div>
         </div>
       </div>
 
-      {/* CONTENEDOR DE OPCIONES AVANZADAS (El Marco) */}
+      {/* CONTENEDOR DE OPCIONES AVANZADAS */}
       <div className={`rounded-xl border transition-all duration-300 ${
-        isExpanded ? "bg-zinc-900/40 border-zinc-700/50 p-4" : "bg-transparent border-transparent"
+        isExpanded ? "bg-zinc-900/40 border-zinc-700/50 p-3" : "bg-transparent border-transparent"
       }`}>
         
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className={`w-full flex items-center justify-between p-3 rounded-xl transition-all group ${
+          className={`w-full flex items-center justify-between p-2 rounded-lg transition-all group ${
             isExpanded 
-              ? "bg-zinc-800/50 border border-zinc-700 mb-4" 
+              ? "bg-zinc-800/50 border border-zinc-700 mb-3" 
               : "bg-zinc-900/50 hover:bg-zinc-900 border border-zinc-800"
           }`}
         >
           <div className="flex items-center gap-2">
-            <Settings2 size={16} className={isExpanded ? "text-blue-300" : "text-blue-400"} />
-            <span className="text-sm font-medium text-zinc-300 group-hover:text-white">
+            <Settings2 size={14} className="text-zinc-400" />
+            <span className="text-xs font-medium text-zinc-300 group-hover:text-white">
               {isExpanded ? "Mostrar menos opciones" : "Mostrar más opciones"}
             </span>
           </div>
           {isExpanded ? (
-            <ChevronUp size={18} className="text-zinc-400" />
+            <ChevronUp size={16} className="text-zinc-400" />
           ) : (
-            <ChevronDown size={18} className="text-zinc-500" />
+            <ChevronDown size={16} className="text-zinc-400" />
           )}
         </button>
 
         {/* CONTENIDO DESPLEGABLE */}
         {isExpanded && (
-          <div className="space-y-5 animate-in slide-in-from-top-2 duration-300">
+          <div className="space-y-3 animate-in slide-in-from-top-2 duration-300">
             
             <div>
-              <label className="block text-blue-400 text-xs font-medium mb-1.5 ml-1">
+              <label className="block text-zinc-400 text-xs font-normal mb-1 ml-1">
                 Código de Barra
               </label>
               <input
                 value={formData.txtcodigo}
                 readOnly
-                className="w-full bg-zinc-950 border border-zinc-800 text-zinc-500 rounded-lg p-3 cursor-not-allowed font-mono text-sm"
+                className="w-full bg-zinc-950 border border-zinc-800 text-zinc-500 rounded-lg p-2 cursor-not-allowed font-mono text-xs"
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-blue-400 text-xs font-medium mb-1.5 ml-1">
+                <label className="block text-zinc-400 text-xs font-normal mb-1 ml-1">
                   IVA (19%)
                 </label>
-                <div className="flex gap-2 h-[46px]">
+                <div className="flex gap-2 h-[38px]">
                   {["S", "N"].map((opcion) => (
                     <label
                       key={opcion}
-                      className={`flex-1 flex items-center justify-center cursor-pointer border rounded-lg transition-all ${
+                      className={`flex-1 flex items-center justify-center cursor-pointer border rounded-lg transition-all text-xs ${
                         formData.txtiva === opcion
-                          ? "bg-blue-600/20 border-blue-500 text-blue-300"
+                          ? "bg-zinc-800 border-zinc-500 text-white"
                           : "bg-zinc-950 border-zinc-800 text-zinc-600 hover:bg-zinc-900"
                       }`}
                     >
@@ -128,14 +149,14 @@ const SimpleProductForm = ({
                 </div>
               </div>
               <div>
-                <label className="block text-blue-400 text-xs font-medium mb-1.5 ml-1">
+                <label className="block text-zinc-400 text-xs font-normal mb-1 ml-1">
                   Impuesto Adicional
                 </label>
                 <select
                   name="txtid_impuestos1"
                   value={formData.txtid_impuestos1}
                   onChange={handleChange}
-                  className="w-full h-[46px] bg-zinc-950 border border-zinc-800 rounded-lg px-3 text-sm text-white outline-none focus:border-blue-500/50 appearance-none"
+                  className="w-full h-[38px] bg-zinc-950 border border-zinc-800 rounded-lg px-2 text-xs text-white outline-none focus:border-zinc-500 appearance-none"
                 >
                   {IMPUESTOS_ADICIONALES.map((imp) => (
                     <option key={imp.id} value={imp.id}>
@@ -146,9 +167,9 @@ const SimpleProductForm = ({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-blue-400 text-xs font-medium mb-1.5 ml-1">
+                <label className="block text-zinc-400 text-xs font-normal mb-1 ml-1">
                   Familia
                 </label>
                 <select
@@ -160,7 +181,7 @@ const SimpleProductForm = ({
                       prev ? { ...prev, txtsubfamilia_producto: "" } : null
                     );
                   }}
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-white outline-none focus:border-blue-500/50"
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-white outline-none focus:border-zinc-500"
                 >
                   <option value="0">Seleccione...</option>
                   {FAMILIAS.map((f) => (
@@ -171,16 +192,16 @@ const SimpleProductForm = ({
                 </select>
               </div>
               <div>
-                <label className="block text-blue-400 text-xs font-medium mb-1.5 ml-1">
+                <label className="block text-zinc-400 text-xs font-normal mb-1 ml-1">
                   Sub Familia
-                  {loadingSub && <span className="ml-2 text-blue-500 animate-pulse">...</span>}
+                  {loadingSub && <span className="ml-2 text-zinc-500 animate-pulse">...</span>}
                 </label>
                 <select
                   name="txtsubfamilia_producto"
                   value={formData.txtsubfamilia_producto}
                   onChange={handleChange}
                   disabled={loadingSub || subfamilias.length === 0}
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-white outline-none focus:border-blue-500/50 disabled:opacity-30 disabled:cursor-not-allowed"
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-white outline-none focus:border-zinc-500 disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   <option value="">Seleccione...</option>
                   {subfamilias.map((sf) => (

@@ -73,23 +73,21 @@ def buscar_producto_detalle(data: rjc.BusquedaRequest):
         
 
         soup_tabla = BeautifulSoup(resp_busqueda.text, 'html.parser')
-
-        target_link = None
-        target_link = soup_tabla.find("a", string=lambda t: t and data.codigo.strip() in t)
+        target_link = soup_tabla.find("a", string=lambda t: t and t.strip() == data.codigo.strip())
 
         if not target_link:
             links_con_onclick = soup_tabla.find_all("a", onclick=True)
             for link in links_con_onclick:
-                if data.codigo in link['onclick']:
-                    target_link = link
-                    break
+                match_val = re.search(r"modificar\s*\(\s*['\"]([^'\"]+)['\"]\s*,\s*['\"]([^'\"]+)['\"]\s*\)", link['onclick'])
+                if match_val:
+                    codigo_encontrado = match_val.group(1)
+                    if codigo_encontrado == data.codigo.strip():
+                        target_link = link
+                        break
         
         if not target_link:
-            print("[!] Producto no encontrado. Guardando HTML de error para depuración...")
-            with open("debug_ultimo_error.html", "w", encoding="utf-8") as f: f.write(resp_busqueda.text)
-
-            print(" -> Archivo 'debug_ultimo_error.html' creado en la carpeta del backend.")
-            return {"found": False, "message": "Producto no encontrado en RJC (Revisar logs)"}
+            print(f"[!] Producto con código exacto '{data.codigo}' no encontrado.")
+            return {"found": False, "message": f"No se encontró el producto asociado al codigo: {data.codigo}"}
 
         onclick_text = target_link['onclick']
         print(f"[*] Link encontrado: {onclick_text}")
@@ -214,4 +212,43 @@ def obtener_subfamilias(data: dict):
 
     except Exception as e:
         print(f"Error cargando subfamilias: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@app.post("/api/crear-producto")
+def crear_producto(data: rjc.ProductoForm):
+    session = rjc.get_session()
+    
+    try:
+        print("[*] Iniciando proceso de creación de producto...")
+        url_agregar = f"{rjc.BASE_URL}/producto/agregar.aspx"
+
+        payload_base, _, _ = rjc.obtener_payload_completo(session, url_agregar, method="GET")
+
+        payload_final = payload_base.copy()
+    
+        datos_usuario = data.dict(exclude={"txtid_producto"})
+        payload_final.update(datos_usuario)
+
+        payload_final["bt_grabar"] = "Grabar"
+
+        url_grabar = f"{rjc.BASE_URL}/producto/agregar_gra.aspx"
+        print(f"[*] Enviando datos a {url_grabar}...")
+        
+        resp_guardar = session.post(url_grabar, data=payload_final)
+        
+        remote_success = False
+        if "Producto Grabado" in resp_guardar.text: remote_success = True
+        else:
+            print(f"[!] Respuesta sospechosa: {resp_guardar.text[:200]}...")
+            return {"success": False, "message": "RJC no confirmó la creación (No se halló 'Producto Grabado')"}
+
+        local_msg = ""
+        if remote_success:
+            local_ok = sincronizar_producto_local(data.dict())
+            if local_ok: local_msg = " y sincronizado localmente"
+
+        return {"success": True, "message": f"Producto creado exitosamente{local_msg}"}
+
+    except Exception as e:
+        print(f"Error Creando: {e}")
         raise HTTPException(status_code=500, detail=str(e))

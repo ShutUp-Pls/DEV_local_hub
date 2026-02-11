@@ -1,20 +1,37 @@
 'use client';
 
 import { useState } from "react";
-// Componentes Universales
 import Navbar from "../components/Navbar";
-// Componentes Propios
 import BarcodeScanner from "./components/BarcodeScanner";
 import SearchBar from "./components/SearchBar";
 import ProductForm, { ProductoFormData } from "./components/ProductForm";
+import CreateForm from "./components/CreateForm";
 import Alert from "./components/Alert";
-
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+
+// Valores por defecto solicitados
+const DEFAULT_PRODUCT_DATA: ProductoFormData = {
+  txtcodigo: "",          
+  txtcod_interno: "",
+  txtnombre: "",
+  txtfamilia_producto: "1",      
+  txtsubfamilia_producto: "1",   
+  txtunidad: "UN",               
+  txtiva: "S",                   
+  txtid_impuestos1: "0",         
+  txtprecio_venta: "0",
+  txtprecio_venta_boleta: "0",
+  txtstock_critico: "6",         
+  txtdias_reposion: "0",         
+  txtvigente: "S",
+  txtfactor_compra: "1",
+  txtid_producto: "",            
+  txtfecha_creacion: "",
+  txtporcentaje_iva: "19"
+};
 
 export default function VerificarProducto() {
   const { data: session } = useSession();
-  const router = useRouter();
   
   // Estados principales
   const [barcode, setBarcode] = useState("");
@@ -25,22 +42,21 @@ export default function VerificarProducto() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   
   // Estados de feedback
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+  const [notFoundCode, setNotFoundCode] = useState(""); 
 
   const normalizeProductData = (data: any): ProductoFormData => {
     const normalized = { ...data };
     Object.keys(normalized).forEach((key) => {
-      // Si el valor es null o undefined, lo convertimos en string vacío
-      // De lo contrario, nos aseguramos de que sea un string
       normalized[key] = normalized[key] != null ? String(normalized[key]) : "";
     });
     return normalized as ProductoFormData;
   };
 
-  // Lógica de Búsqueda
   const handleSearch = async (e?: React.FormEvent, codeOverride?: string) => {
     if (e) e.preventDefault();
     const codeToSearch = codeOverride || barcode;
@@ -51,6 +67,8 @@ export default function VerificarProducto() {
     setError("");
     setSuccessMsg("");
     setFormData(null);
+    setNotFoundCode(""); 
+    setIsCreating(false);
 
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/buscar-producto`, {
@@ -68,11 +86,11 @@ export default function VerificarProducto() {
 
       if (data.found) {
         const cleanData = normalizeProductData(data);
-        
         setFormData(cleanData); 
         setOriginalData({ ...cleanData }); 
       } else {
         setError(data.message || "Producto no encontrado");
+        setNotFoundCode(codeToSearch);
       }
     } catch (err: any) {
       setError(err.message || "Error al buscar el producto.");
@@ -81,22 +99,37 @@ export default function VerificarProducto() {
     }
   };
 
-  // Callback cuando el escáner detecta algo
+  const handleStartCreate = () => {
+    setError(""); 
+    setIsCreating(true);
+    
+    const newProduct = { 
+      ...DEFAULT_PRODUCT_DATA, 
+      txtcodigo: notFoundCode 
+    };
+    
+    setFormData(newProduct);
+    setOriginalData(null); 
+  };
+
   const handleScanSuccess = (decodedText: string) => {
     setShowScanner(false);
     setBarcode(decodedText);
-    handleSearch(undefined, decodedText); // Buscar inmediatamente
+    handleSearch(undefined, decodedText);
   };
 
-  // Lógica de Guardado
   const handleSave = async () => {
     if (!formData) return;
     setSaving(true);
     setError("");
     setSuccessMsg("");
 
+    const endpoint = isCreating 
+      ? `${process.env.NEXT_PUBLIC_API_URL}/api/crear-producto`
+      : `${process.env.NEXT_PUBLIC_API_URL}/api/guardar-producto`;
+
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/guardar-producto`, {
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
@@ -105,14 +138,15 @@ export default function VerificarProducto() {
       const data = await res.json();
       
       if (data.success) {
-        setSuccessMsg("¡Producto guardado exitosamente!");
-        // CLAVE: Actualizamos el originalData con lo que acabamos de guardar
+        setSuccessMsg(isCreating ? "¡Producto creado exitosamente!" : "¡Producto guardado exitosamente!");
         setOriginalData(formData); 
+        setIsCreating(false); 
+        setNotFoundCode("");
       } else {
         setError(data.message || "No se pudo guardar");
       }
     } catch (err) {
-      setError("Error crítico al guardar");
+      setError("Error crítico al procesar solicitud");
     } finally {
       setSaving(false);
     }
@@ -130,31 +164,73 @@ export default function VerificarProducto() {
       )}
 
       <main className="max-w-5xl mx-auto p-4 sm:p-8">
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold">Escanear producto</h2>
-        </div>
+        
+        {/* CABECERA Y BUSCADOR: Solo visibles si NO estamos creando */}
+        {!isCreating && (
+          <>
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold">Escanear producto</h2>
+            </div>
+            
+            <SearchBar 
+              barcode={barcode}
+              setBarcode={setBarcode}
+              onSearch={handleSearch}
+              onOpenScanner={() => setShowScanner(true)}
+              loading={loading}
+            />
+          </>
+        )}
 
-        <SearchBar 
-          barcode={barcode}
-          setBarcode={setBarcode}
-          onSearch={handleSearch}
-          onOpenScanner={() => setShowScanner(true)}
-          loading={loading}
-        />
-
-        {/* Mantenemos el error aquí arriba para fallos de búsqueda */}
-        <Alert message={error} type="error" />
+        {/* Lógica del Error y Botón de Crear */}
+        {error && (
+          <div className="mb-6">
+            <Alert message={error} type="error" />
+            
+            {notFoundCode && !formData && (
+              <div className="flex justify-center mt-4 animate-in fade-in slide-in-from-top-2">
+                <button
+                  onClick={handleStartCreate}
+                  className="bg-green-600 hover:bg-green-500 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-green-900/20 flex items-center gap-2 transition-all transform hover:scale-105"
+                >
+                  Crear producto "{notFoundCode}"
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {formData && (
           <>
-            <ProductForm 
-              formData={formData}
-              originalData={originalData} // PASAMOS EL ORIGINAL
-              setFormData={setFormData}
-              onSave={handleSave}
-              onCancel={() => setFormData(null)}
-              saving={saving}
-            />
+            {isCreating ? (
+              <CreateForm 
+                formData={formData}
+                setFormData={setFormData}
+                onSave={handleSave}
+                onCancel={() => {
+                  setFormData(null);
+                  setIsCreating(false);
+                  setNotFoundCode("");
+                  setError("");
+                }}
+                saving={saving}
+              />
+            ) : (
+              <ProductForm 
+                formData={formData}
+                originalData={originalData}
+                setFormData={setFormData}
+                onSave={handleSave}
+                onCancel={() => {
+                  setFormData(null);
+                  setIsCreating(false);
+                  setNotFoundCode("");
+                  setError("");
+                }}
+                saving={saving}
+              />
+            )}
+            
             <Alert message={successMsg} type="success" />
           </>
         )}
