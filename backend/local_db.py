@@ -136,6 +136,51 @@ def actualizar_windows(data):
     finally:
         conn.close()
 
+def insertar_windows(data):
+    conn = conectar_mdb_windows()
+    if not conn: return False
+    
+    cursor = conn.cursor()
+    try:
+        # Asumimos que podemos insertar el ID manualmente para mantener sincronía.
+        # Si la columna id_producto es Autonumérica estricta en Access, esto podría fallar,
+        # pero generalmente en sistemas sincronizados es un Long Integer.
+        sql = """
+            INSERT INTO producto (
+                id_producto, codigo, cod_interno, nombre, familia, subfamilia, 
+                unidad, afecto_iva, id_impuestos, precio_venta, precio_venta_boleta, 
+                stock_critico, dias_reposion, vigente, factor_compra
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """
+        
+        params = (
+            safe_int(data['txtid_producto']),
+            str(data['txtcodigo'])[:20],
+            str(data['txtcod_interno'])[:20],
+            str(data['txtnombre'])[:80],
+            safe_int(data['txtfamilia_producto']),
+            safe_int(data['txtsubfamilia_producto']),
+            str(data['txtunidad'])[:10],
+            str(data['txtiva'])[:1],
+            safe_int(data['txtid_impuestos1']),
+            safe_float(data['txtprecio_venta']),
+            safe_float(data['txtprecio_venta_boleta']),
+            safe_float(data['txtstock_critico']),
+            safe_int(data['txtdias_reposion']),
+            str(data['txtvigente'])[:1],
+            safe_int(data['txtfactor_compra'])
+        )
+
+        cursor.execute(sql, params)
+        conn.commit()
+        print(f"[V] (WIN) Producto {data['txtid_producto']} INSERTADO en MDB.")
+        return True
+    except Exception as e:
+        print(f"[X] Error INSERT Windows: {e}")
+        return False
+    finally:
+        conn.close()
+
 # ==========================================
 # BLOQUE LINUX (Puente SQLite)
 # ==========================================
@@ -317,6 +362,46 @@ def actualizar_linux(data):
     finally:
         conn.close()
 
+def insertar_linux(data):
+    inicializar_db_linux()
+    conn = sqlite3.connect(DB_SQLITE_PATH)
+    cursor = conn.cursor()
+    try:
+        sql = """
+            INSERT INTO producto (
+                id_producto, codigo, cod_interno, nombre, familia, subfamilia, 
+                unidad, afecto_iva, id_impuestos, precio_venta, precio_venta_boleta, 
+                stock_critico, dias_reposion, vigente, factor_compra
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """
+        
+        params = (
+            safe_int(data['txtid_producto']),
+            str(data['txtcodigo'])[:20],
+            str(data['txtcod_interno'])[:20],
+            str(data['txtnombre'])[:80],
+            safe_int(data['txtfamilia_producto']),
+            safe_int(data['txtsubfamilia_producto']),
+            str(data['txtunidad'])[:10],
+            str(data['txtiva'])[:1],
+            safe_int(data['txtid_impuestos1']),
+            safe_float(data['txtprecio_venta']),
+            safe_float(data['txtprecio_venta_boleta']),
+            safe_float(data['txtstock_critico']),
+            safe_int(data['txtdias_reposion']),
+            str(data['txtvigente'])[:1],
+            safe_int(data['txtfactor_compra'])
+        )
+        cursor.execute(sql, params)
+        conn.commit()
+        print(f"[V] (LINUX) Producto {data['txtid_producto']} INSERTADO en SQLite.")
+        return True
+    except Exception as e:
+        print(f"[X] Error INSERT SQLite: {e}")
+        return False
+    finally:
+        conn.close()
+
 
 # ==========================================
 # INTERFAZ PÚBLICA (El Router)
@@ -327,5 +412,11 @@ def buscar_producto_local(codigo):
     else: return buscar_linux(codigo)
 
 def sincronizar_producto_local(data):
+    # Esta es para MODIFICAR (UPDATE)
     if ES_WINDOWS: return actualizar_windows(data)
     else: return actualizar_linux(data)
+
+def crear_producto_local(data):
+    # Esta es NUEVA para INSERTAR (INSERT)
+    if ES_WINDOWS: return insertar_windows(data)
+    else: return insertar_linux(data)

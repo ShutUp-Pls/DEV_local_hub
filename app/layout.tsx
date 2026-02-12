@@ -6,44 +6,66 @@ import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 import "./globals.css";
 
+import Navbar from "./components/Navbar";
+import { SearchProvider, useSearch } from "./context/SearchContext";
+
+const PAGES_WITH_NAVBAR = [
+  "/verificar-producto",
+  "/inicio"
+];
+
 function SessionGuard({ children }: { children: React.ReactNode }) {
-  const { status } = useSession();
+  // 1. Obtenemos el status además de la data
+  const { data: session, status } = useSession(); 
   const router = useRouter();
   const pathname = usePathname();
-  
-  // Usamos una referencia para rastrear si ESTABA logueado en esta sesión de carga.
   const wasLoggedIn = useRef(false);
+  
+  // 2. Obtenemos isInitialized
+  const { useLocalSearch, setUseLocalSearch, isInitialized } = useSearch();
 
   useEffect(() => {
     if (status === "authenticated") {
       wasLoggedIn.current = true;
     }
-
-    // LA LÓGICA ESTRICTA:
-    // Solo redirigimos con "expired=true" SI Y SOLO SI:
-    // 1. El usuario ya estaba autenticado (wasLoggedIn.current = true)
-    // 2. El sistema detectó que la sesión murió (status === "unauthenticated")
-    // 3. No estamos ya en el login (pathname !== "/inicio-sesion")
-    
     if (wasLoggedIn.current && status === "unauthenticated" && pathname !== "/inicio-sesion") {
-      // Este es el ÚNICO lugar de toda la app que genera el mensaje de expiración.
       router.push("/inicio-sesion?expired=true");
     }
-    
   }, [status, pathname, router]);
 
-  return <>{children}</>;
+  const showNavbar = PAGES_WITH_NAVBAR.some(route => 
+    pathname === route || pathname?.startsWith(`${route}/`)
+  );
+
+  return (
+    <>
+      {showNavbar && (
+        <Navbar 
+          userName={session?.user?.name}
+          useLocalSearch={useLocalSearch}
+          setUseLocalSearch={setUseLocalSearch}
+          isInitialized={isInitialized}
+          isLoadingSession={status === "loading"}
+        />
+      )}
+      <div className={showNavbar ? "pt-0" : ""}>
+        {children}
+      </div>
+    </>
+  );
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es">
       <body>
-        {/* El refetchInterval es vital. Comprueba la sesión cada 5 segundos */}
         <SessionProvider refetchInterval={300}> 
-          <SessionGuard>
-            {children}
-          </SessionGuard>
+          {/* Envolvemos todo en el SearchProvider para que el estado persista */}
+          <SearchProvider>
+            <SessionGuard>
+              {children}
+            </SessionGuard>
+          </SearchProvider>
         </SessionProvider>
       </body>
     </html>

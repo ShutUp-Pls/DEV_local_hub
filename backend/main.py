@@ -104,55 +104,100 @@ def buscar_producto_local_endpoint(data: BusquedaRequest):
 def buscar_producto_detalle(data: BusquedaRequest):
     session = rjc.get_session()
     
+    # Variable para guardar el ID encontrado
+    id_producto_rjc = None
+    origen_dato = "DESCONOCIDO"
+
+    # ------------------------------------------------------------------
+    # PASO 1: INTENTO LOCAL (Atajo Rápido)
+    # ------------------------------------------------------------------
     try:
-        url_buscar = f"{rjc.BASE_URL}/producto/buscar.aspx"
+        print(f"[*] [Híbrido] Consultando caché local para: {data.codigo}...")
+        prod_local = lcl.buscar_producto_local(data.codigo)
         
-        payload, _, _ = rjc.obtener_payload_completo(session, url_buscar)
-        
-        payload["txtcodigo_bus"] = data.codigo
-        payload["txttotal_registros_bus"] = "100"
-        payload["bt_buscar"] = "Buscar" 
+        # Solo confiamos si devuelve un ID válido diferente de 0
+        if prod_local and prod_local.get("txtid_producto") and prod_local.get("txtid_producto") != "0":
+            id_producto_rjc = prod_local["txtid_producto"]
+            origen_dato = "LOCAL"
+            print(f"[V] [Híbrido] ID encontrado localmente: {id_producto_rjc}. Saltando búsqueda Web.")
+        else:
+            print("[!] No encontrado en local o sin ID válido. Pasando a Web...")
 
-        print(f"[*] Buscando código: {data.codigo}...")
+    except Exception as e:
+        print(f"[!] Error en consulta local (Saltando a Web): {e}")
 
-        resp_busqueda = session.post(url_buscar, data=payload)
-        resp_busqueda.encoding = 'latin-1'
-        
+    # ------------------------------------------------------------------
+    # PASO 2: INTENTO WEB (Lógica Original Restaurada)
+    # ------------------------------------------------------------------
+    if not id_producto_rjc:
+        print(f"[*] Iniciando búsqueda WEB para código: {data.codigo}...")
+        try:
+            url_buscar = f"{rjc.BASE_URL}/producto/buscar.aspx"
+            
+            payload, _, _ = rjc.obtener_payload_completo(session, url_buscar)
+            
+            payload["txtcodigo_bus"] = data.codigo
+            # CORRECCIÓN: Volvemos a 100. Si buscas "6", RJC puede mostrar "16", "26"... antes que el "6".
+            # Con 20 registros, el "6" real quedaba fuera de la página.
+            payload["txttotal_registros_bus"] = "100"
+            payload["bt_buscar"] = "Buscar" 
 
-        soup_tabla = BeautifulSoup(resp_busqueda.text, 'html.parser')
-        target_link = soup_tabla.find("a", string=lambda t: t and t.strip() == data.codigo.strip())
+            resp_busqueda = session.post(url_buscar, data=payload)
+            resp_busqueda.encoding = 'latin-1'
 
-        if not target_link:
-            links_con_onclick = soup_tabla.find_all("a", onclick=True)
-            for link in links_con_onclick:
-                match_val = re.search(r"modificar\s*\(\s*['\"]([^'\"]+)['\"]\s*,\s*['\"]([^'\"]+)['\"]\s*\)", link['onclick'])
-                if match_val:
-                    codigo_encontrado = match_val.group(1)
-                    if codigo_encontrado == data.codigo.strip():
-                        target_link = link
-                        break
-        
-        if not target_link:
-            print(f"[!] Producto con código exacto '{data.codigo}' no encontrado.")
-            return {"found": False, "message": f"No se encontró el producto asociado al codigo: {data.codigo}"}
+            soup_tabla = BeautifulSoup(resp_busqueda.text, 'html.parser')
+            
+            # --- LÓGICA ORIGINAL RESTAURADA (Exactamente la que funcionaba) ---
+            
+            # 1. Intento por coincidencia exacta de texto en el link (Ej: <a>6</a>)
+            target_link = soup_tabla.find("a", string=lambda t: t and t.strip() == data.codigo.strip())
 
-        onclick_text = target_link['onclick']
-        print(f"[*] Link encontrado: {onclick_text}")
-        
+            # 2. Si falla, intento por Regex en onclick (Tu lógica original)
+            if not target_link:
+                links_con_onclick = soup_tabla.find_all("a", onclick=True)
+                for link in links_con_onclick:
+                    match_val = re.search(r"modificar\s*\(\s*['\"]([^'\"]+)['\"]\s*,\s*['\"]([^'\"]+)['\"]\s*\)", link['onclick'])
+                    if match_val:
+                        codigo_encontrado = match_val.group(1)
+                        # Comparamos ignorando espacios
+                        if codigo_en_fila := codigo_encontrado.strip() == data.codigo.strip():
+                            target_link = link
+                            break
+            
+            if not target_link:
+                print(f"[X] El producto {data.codigo} no aparece en la tabla de búsqueda web.")
+                return {"found": False, "message": f"No se encontró el producto {data.codigo} en RJC."}
 
-        match = re.search(r"modificar\s*\(\s*['\"]?([^'\",]+)['\"]?\s*,\s*['\"]?([^'\",]+)['\"]?\s*\)", onclick_text)
-        if not match: return {"found": False, "message": "Error leyendo ID del producto"}
-             
-        id_producto = match.group(2)
-        print(f"[*] ID encontrado: {id_producto}. Accediendo a detalle...")
+            # Extraer ID del link encontrado
+            onclick_text = target_link['onclick']
+            match = re.search(r"modificar\s*\(\s*['\"]?([^'\",]+)['\"]?\s*,\s*['\"]?([^'\",]+)['\"]?\s*\)", onclick_text)
+            
+            if match:
+                id_producto_rjc = match.group(2)
+                origen_dato = "WEB"
+                print(f"[V] ¡Encontrado en WEB! ID: {id_producto_rjc}")
+            else:
+                return {"found": False, "message": "Error leyendo ID del producto"}
 
+        except Exception as e:
+            print(f"Error Crítico Búsqueda Web: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+    # ------------------------------------------------------------------
+    # PASO 3: OBTENER FICHA TÉCNICA (Común para ambos)
+    # ------------------------------------------------------------------
+    try:
+        print(f"[*] [Ficha] Descargando detalle ID: {id_producto_rjc} (Origen: {origen_dato})...")
         url_modificar = f"{rjc.BASE_URL}/producto/modificar.aspx"
-        payload["txtid_producto"] = id_producto
         
-        resp_detalle = session.post(url_modificar, data=payload)
-        resp_detalle.encoding = 'latin-1'
-        soup_detalle = BeautifulSoup(resp_detalle.text, 'html.parser')
-
+        # Hacemos POST directo con el ID encontrado
+        payload_detalle, soup_detalle, resp_detalle = rjc.obtener_payload_completo(
+            session, 
+            url_modificar, 
+            method="POST", 
+            data_prev={"txtid_producto": id_producto_rjc}
+        )
+        
         def get_val(field_name):
             tag = soup_detalle.find("input", {"name": field_name})
             if tag: return tag.get("value", "")
@@ -161,10 +206,10 @@ def buscar_producto_detalle(data: BusquedaRequest):
             if select:
                 option = select.find("option", selected=True)
                 if option: return option.get("value", "")
-
+                
                 script_pattern = rf"frmmodificar\.{field_name}\.value\s*=\s*['\"]([^'\"]*)['\"]"
-                script_match = re.search(script_pattern, resp_detalle.text)
-                if script_match: return script_match.group(1)
+                match_js = re.search(script_pattern, resp_detalle.text)
+                if match_js: return match_js.group(1)
             return ""
 
         producto = {
@@ -183,18 +228,18 @@ def buscar_producto_detalle(data: BusquedaRequest):
             "txtdias_reposion": get_val("txtdias_reposion"),
             "txtvigente": get_val("txtvigente"),
             "txtfactor_compra": get_val("txtfactor_compra"),
-            "txtid_producto": id_producto,
+            "txtid_producto": id_producto_rjc,
             "txtfecha_creacion": get_val("txtfecha_creacion"),
             "txtporcentaje_iva": get_val("txtporcentaje_iva") or "19"
         }
         
         if not producto["txtnombre"]:
-             return {"found": False, "message": "Error al cargar ficha (campos vacíos)"}
-
+             return {"found": False, "message": "Error: Ficha técnica vacía o ilegible."}
+        
         return producto
 
     except Exception as e:
-        print(f"Error Deep Search: {e}")
+        print(f"Error cargando detalle final: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/guardar-producto")
@@ -310,24 +355,25 @@ def obtener_subfamilias(data: dict):
     except Exception as e:
         print(f"Error cargando subfamilias: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-    
+
 @app.post("/api/crear-producto")
 def crear_producto(data: ProductoForm):
     session = rjc.get_session()
     
     try:
-        print("[*] Iniciando proceso de creación de producto...")
+        print(f"[*] Iniciando proceso de creación para: {data.txtcodigo}...")
         url_agregar = f"{rjc.BASE_URL}/producto/agregar.aspx"
 
+        # 1. Obtener payload base
         payload_base, _, _ = rjc.obtener_payload_completo(session, url_agregar, method="GET")
 
+        # 2. Preparar datos
         payload_final = payload_base.copy()
-    
-        datos_usuario = data.dict(exclude={"txtid_producto"})
+        datos_usuario = data.dict(exclude={"txtid_producto"}) # Excluimos ID porque es nuevo
         payload_final.update(datos_usuario)
-
         payload_final["bt_grabar"] = "Grabar"
 
+        # 3. Enviar grabación
         url_grabar = f"{rjc.BASE_URL}/producto/agregar_gra.aspx"
         print(f"[*] Enviando datos a {url_grabar}...")
         
@@ -343,17 +389,51 @@ def crear_producto(data: ProductoForm):
         del session.headers["Referer"]
         del session.headers["Origin"]
         
+        # 4. Validar éxito remoto
         remote_success = False
-        if "producto grabado" in resp_guardar.text.lower(): remote_success = True
+        if "producto grabado" in resp_guardar.text.lower(): 
+            remote_success = True
         else:
             soup_err = BeautifulSoup(resp_guardar.text, 'html.parser')
-            print(f"[!] Fallo Creación. Preview: {soup_err.get_text(separator=' ', strip=True)[:200]}")
-            return {"success": False, "message": "RJC no confirmó la creación"}
+            err_preview = soup_err.get_text(separator=' ', strip=True)[:200]
+            print(f"[!] Fallo Creación Remota. Preview: {err_preview}")
+            return {"success": False, "message": f"RJC no confirmó la creación: {err_preview}"}
 
+        # 5. SINCRONIZACIÓN LOCAL (Aquí estaba el fallo de coordinación)
         local_msg = ""
         if remote_success:
-            local_ok = lcl.sincronizar_producto_local(data.dict())
-            if local_ok: local_msg = " y sincronizado localmente"
+            print("[*] Producto creado en WEB. Buscando ID asignado para sincronizar local...")
+            
+            # PASO A: Reutilizamos la lógica de búsqueda para obtener el ID real
+            # Creamos un objeto dummy para la búsqueda
+            req_busqueda = BusquedaRequest(codigo=data.txtcodigo)
+            
+            # Llamamos a la lógica de búsqueda (Ojo: esto hace una llamada HTTP extra a RJC,
+            # pero es necesaria para obtener el ID seguro)
+            producto_web = buscar_producto_detalle(req_busqueda)
+            
+            if producto_web and producto_web.get("found") and producto_web.get("txtid_producto"):
+                nuevo_id = producto_web["txtid_producto"]
+                print(f"[V] ID recuperado de RJC: {nuevo_id}")
+                
+                # PASO B: Preparamos datos para INSERTAR localmente
+                datos_para_local = data.dict()
+                datos_para_local["txtid_producto"] = nuevo_id # ASIGNAMOS EL ID REAL
+                
+                # Si la web devolvió fecha de creación, la usamos
+                if producto_web.get("txtfecha_creacion"):
+                    datos_para_local["txtfecha_creacion"] = producto_web["txtfecha_creacion"]
+
+                # PASO C: Insertar (NO Actualizar)
+                local_ok = lcl.crear_producto_local(datos_para_local)
+                
+                if local_ok: 
+                    local_msg = f" y sincronizado localmente (ID: {nuevo_id})"
+                else:
+                    local_msg = " (pero falló la inserción local)"
+            else:
+                print("[!] Producto creado pero no se pudo recuperar el ID para sync local.")
+                local_msg = " (Sincronización pendiente: No se obtuvo ID)"
 
         return {"success": True, "message": f"Producto creado exitosamente{local_msg}"}
 

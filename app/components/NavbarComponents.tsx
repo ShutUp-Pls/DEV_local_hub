@@ -1,6 +1,6 @@
 import React from 'react';
+import styles from './Navbar.module.css';
 
-// Tipos necesarios
 export type ConnectionStatus = 'loading' | 'connected' | 'failed' | 'validating';
 
 interface RjcIndicatorProps {
@@ -12,37 +12,36 @@ interface SearchSwitchProps {
   useLocalSearch: boolean;
   setUseLocalSearch: (val: boolean) => void;
   fullWidth?: boolean;
-  reverse?: boolean; // Prop para invertir orden
+  reverse?: boolean;
 }
 
-// 2.2 Componente Feedback RJC
 export const RjcIndicator = ({ status, onRetry }: RjcIndicatorProps) => {
   return (
-    <div className="flex items-center text-xs font-medium bg-zinc-900/80 px-3 py-1.5 rounded-full border border-zinc-800 w-fit">
+    <div className={styles.rjcBadge}>
+      {/* 1. RJC siempre en blanco */}
+      <span className={styles.rjcLabel}>RJC</span>
+
+      {/* 2. Estados en Azul */}
       {status === 'loading' && (
-        <span className="flex items-center text-yellow-500 gap-2">
-          <span className="animate-spin h-2 w-2 border-2 border-yellow-500 border-t-transparent rounded-full"></span>
+        <span className={`${styles.statusContainer} ${styles.textBlueDim}`}>
+          <span className={`${styles.dot} ${styles.dotConnecting}`}></span>
           Conectando...
         </span>
       )}
 
       {(status === 'connected' || status === 'validating') && (
-        <span className="flex items-center text-green-500 gap-2">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+        <span className={`${styles.statusContainer} ${styles.textBlueBright}`}>
+          <span className={styles.dotConnected}>
+            <span className={styles.ping}></span>
+            <span className={styles.dot} style={{ backgroundColor: '#3b82f6', position: 'relative' }}></span>
           </span>
-          RJC Conectado
+          Conectado
         </span>
       )}
 
       {status === 'failed' && (
-        <button 
-          onClick={onRetry}
-          className="flex items-center text-red-400 gap-2 hover:text-red-300 hover:underline transition-all cursor-pointer"
-          title="Reintentar conexión"
-        >
-          <span className="h-2 w-2 rounded-full bg-red-500"></span>
+        <button onClick={onRetry} className={styles.retryBtn} title="Reintentar conexión">
+          <span className={`${styles.dot} ${styles.dotFailed}`}></span>
           Error (Reintentar ↻)
         </button>
       )}
@@ -50,35 +49,19 @@ export const RjcIndicator = ({ status, onRetry }: RjcIndicatorProps) => {
   );
 };
 
-// 2.3 Componente Switch
 export const SearchSwitch = ({ useLocalSearch, setUseLocalSearch, fullWidth = false, reverse = false }: SearchSwitchProps) => (
   <div 
-    // LÓGICA DE ALINEACIÓN:
-    // fullWidth: Ocupa todo el ancho.
-    // reverse: Invierte el orden (flex-row-reverse).
-    //    -> Normal: [Texto] ... [Toggle]
-    //    -> Reverse: [Toggle] ... [Texto] (El texto queda a la derecha)
-    className={`flex items-center gap-3 bg-zinc-800/50 px-3 py-1.5 rounded-full border border-zinc-700/50 cursor-pointer hover:bg-zinc-800 transition-colors 
-      ${fullWidth ? 'w-full justify-between' : 'w-fit'} 
-      ${reverse ? 'flex-row-reverse' : ''}`
-    }
+    className={`${styles.switchBase} ${fullWidth ? styles.switchFull : ''} ${reverse ? styles.switchReverse : ''}`}
     onClick={() => setUseLocalSearch(!useLocalSearch)}
   >
-    {/* Texto: Si hay reverse, este elemento (1º en DOM) se va visualmente al final (Derecha) */}
-    <span className={`text-xs font-semibold select-none ${useLocalSearch ? 'text-blue-400' : 'text-zinc-400'}`}>
+    {/* Texto activo usa el azul del HUB */}
+    <span className={`${styles.switchLabel} ${useLocalSearch ? styles.textActiveBlue : styles.textZinc}`}>
       {useLocalSearch ? 'Búsqueda Local' : 'Búsqueda Web'}
     </span>
     
-    {/* Toggle: Si hay reverse, este elemento (2º en DOM) se va visualmente al inicio (Izquierda) */}
-    <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${
-        useLocalSearch ? 'bg-blue-600' : 'bg-zinc-600'
-      }`}
-    >
-      <span
-        className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
-          useLocalSearch ? 'translate-x-5' : 'translate-x-1'
-        }`}
-      />
+    {/* Toggle Track usa el azul del HUB */}
+    <div className={`${styles.toggleTrack} ${useLocalSearch ? styles.bgBlue : styles.bgZinc}`}>
+      <span className={`${styles.toggleThumb} ${useLocalSearch ? styles.translateOn : styles.translateOff}`} />
     </div>
   </div>
 );

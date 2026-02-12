@@ -30,7 +30,7 @@
 *.pem
 
 *.sqlite
-script-*
+script-*.py
 
 # debug
 npm-debug.log*

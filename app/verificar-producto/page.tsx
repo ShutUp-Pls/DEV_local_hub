@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from "react";
-import Navbar from "../components/Navbar";
+import { useState, useEffect } from "react";
+import { useSearch } from "../context/SearchContext";
 import BarcodeScanner from "./components/BarcodeScanner";
 import SearchBar from "./components/SearchBar";
 import ProductForm, { ProductoFormData } from "./components/ProductForm";
@@ -37,9 +37,8 @@ export default function VerificarProducto() {
   const [barcode, setBarcode] = useState("");
   const [formData, setFormData] = useState<ProductoFormData | null>(null);
   const [originalData, setOriginalData] = useState<ProductoFormData | null>(null);
-  
-  // NUEVO: Estado para controlar el modo de búsqueda (Local vs Web)
-  const [useLocalSearch, setUseLocalSearch] = useState(false);
+
+  const { useLocalSearch } = useSearch();
 
   // Estados de UI
   const [loading, setLoading] = useState(false);
@@ -164,13 +163,6 @@ export default function VerificarProducto() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white font-sans pb-20">
-      
-      {/* Pasamos los estados del switch al Navbar */}
-      <Navbar 
-        userName={session?.user?.name} 
-        useLocalSearch={useLocalSearch}
-        setUseLocalSearch={setUseLocalSearch}
-      />
 
       {showScanner && (
         <BarcodeScanner 
