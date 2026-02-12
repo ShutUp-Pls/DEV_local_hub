@@ -1,8 +1,10 @@
 import React from "react";
 import { FAMILIAS, IMPUESTOS_ADICIONALES } from "../utils/productConstants";
 import { ProductoFormData } from "./ProductForm";
+import { Settings2 } from "lucide-react"; 
+import s from "./ProductForm.module.css";
 
-interface CreateProductFormProps {
+interface FullProductFormProps {
   formData: ProductoFormData;
   handleChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
   handlePriceChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -11,158 +13,141 @@ interface CreateProductFormProps {
   loadingSub: boolean;
 }
 
-const CreateProductForm = ({
+const FullProductForm = ({
   formData,
   handleChange,
   handlePriceChange,
   setFormData,
   subfamilias,
   loadingSub,
-}: CreateProductFormProps) => {
+}: FullProductFormProps) => {
   return (
-    <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in duration-300 px-2">
+    <div className="w-full space-y-6 animate-in fade-in duration-300">
       
-      {/* SECCIÓN 1: Identificación y Precio */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Nombre - Ahora ocupa toda la fila o se mantiene prominente */}
-        <div className="md:col-span-2">
-          <label className="block text-blue-400 text-xs font-bold mb-2 ml-1">
-            Nombre del Producto <span className="text-red-500">*</span>
-          </label>
+      {/* SECCIÓN PRINCIPAL */}
+      <div className="space-y-4">
+        <div>
+          <label className={s.label}>Nombre del Producto</label>
           <input
             name="txtnombre"
             value={formData.txtnombre}
             onChange={handleChange}
-            autoFocus
-            className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-white outline-none focus:border-blue-500 transition-all shadow-inner"
-            placeholder="Ej: Galletas Soda 150g"
+            className={s.input}
+            placeholder="Ej: Coca Cola 3L"
           />
         </div>
 
-        {/* Precio Venta - Movido al inicio de esta fila */}
+        {/* PRECIO FINAL */}
         <div>
-          <label className="block text-green-400 text-xs font-bold mb-2 ml-1">
-            Precio Venta (Bruto) <span className="text-red-500">*</span>
-          </label>
-          <div className="relative group">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-green-500 transition-colors">
+          <label className={s.label}>Precio Final (Bruto)</label>
+          <div className="relative flex items-center">
+            <span className="absolute left-3 text-zinc-400 pointer-events-none text-sm">
               $
             </span>
             <input
               name="txtprecio_venta_boleta"
               value={formData.txtprecio_venta_boleta}
               onChange={handlePriceChange}
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 pl-8 text-white font-mono text-lg outline-none focus:border-green-500 transition-all"
+              className={`${s.inputMoney}`}
               placeholder="0"
             />
           </div>
         </div>
-
-        {/* El campo "Código Detectado" ha sido eliminado de aquí */}
       </div>
 
-      {/* SECCIÓN 2: Clasificación (Obligatoria para crear) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Familia */}
-        <div>
-          <label className="block text-blue-400 text-xs font-bold mb-2 ml-1">
-            Familia
-          </label>
-          <select
-            name="txtfamilia_producto"
-            value={formData.txtfamilia_producto}
-            onChange={(e) => {
-              handleChange(e);
-              setFormData((prev) =>
-                prev ? { ...prev, txtsubfamilia_producto: "" } : null
-              );
-            }}
-            className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-sm text-white outline-none focus:border-blue-500 transition-all appearance-none cursor-pointer hover:bg-zinc-900"
-          >
-            <option value="0">Seleccione Familia...</option>
-            {FAMILIAS.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.nombre}
-              </option>
-            ))}
-          </select>
+      <hr className="border-zinc-800" />
+
+      {/* SECCIÓN DE OPCIONES (SIEMPRE VISIBLES) */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 mb-2">
+          <Settings2 size={14} className="text-blue-400" />
+          <span className="text-xs font-medium text-zinc-300 uppercase tracking-wider">
+            Configuración y Categorías
+          </span>
         </div>
 
-        {/* Sub Familia */}
-        <div>
-          <label className="block text-blue-400 text-xs font-bold mb-2 ml-1 flex justify-between">
-            Sub Familia
-            {loadingSub && <span className="text-blue-500 animate-pulse text-[10px]">Cargando...</span>}
-          </label>
-          <select
-            name="txtsubfamilia_producto"
-            value={formData.txtsubfamilia_producto}
-            onChange={handleChange}
-            disabled={loadingSub || subfamilias.length === 0}
-            className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-sm text-white outline-none focus:border-blue-500 transition-all appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:bg-zinc-900"
-          >
-            <option value="">Seleccione Sub Familia...</option>
-            {subfamilias.map((sf) => (
-              <option key={sf.id} value={sf.id}>
-                {sf.nombre}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* SECCIÓN 3: Impuestos */}
-      <div className="bg-zinc-900/30 p-4 rounded-xl border border-zinc-800/50 grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* IVA */}
-        <div>
-          <label className="block text-zinc-400 text-xs font-bold mb-2 ml-1">
-            ¿Afecto a IVA? (19%)
-          </label>
-          <div className="flex gap-3">
-            {["S", "N"].map((opcion) => (
-              <label
-                key={opcion}
-                className={`flex-1 flex items-center justify-center cursor-pointer border rounded-xl py-2 transition-all font-bold text-sm ${
-                  formData.txtiva === opcion
-                    ? "bg-blue-600/20 border-blue-500 text-blue-300 shadow-[0_0_10px_rgba(59,130,246,0.2)]"
-                    : "bg-zinc-950 border-zinc-800 text-zinc-600 hover:bg-zinc-900"
-                }`}
+        <div className={`${s.sectionBox} space-y-4`}>
+          {/* FAMILIA Y SUB FAMILIA */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className={s.label}>Familia</label>
+              <select
+                name="txtfamilia_producto"
+                value={formData.txtfamilia_producto}
+                onChange={(e) => {
+                  handleChange(e);
+                  setFormData((prev) => prev ? { ...prev, txtsubfamilia_producto: "" } : null);
+                }}
+                className={s.select}
               >
-                <input
-                  type="radio"
-                  name="txtiva"
-                  value={opcion}
-                  checked={formData.txtiva === opcion}
-                  onChange={handleChange}
-                  className="hidden"
-                />
-                {opcion === "S" ? "SÍ" : "NO"}
+                <option value="0">Seleccione...</option>
+                {FAMILIAS.map((f) => (
+                  <option key={f.id} value={f.id}>{f.nombre}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={s.label}>
+                Sub Familia {loadingSub && <span className={s.loadingText}>...</span>}
               </label>
-            ))}
+              <select
+                name="txtsubfamilia_producto"
+                value={formData.txtsubfamilia_producto}
+                onChange={handleChange}
+                disabled={loadingSub || subfamilias.length === 0}
+                className={s.select}
+              >
+                <option value="">Seleccione...</option>
+                {subfamilias.map((sf) => (
+                  <option key={sf.id} value={sf.id}>{sf.nombre}</option>
+                ))}
+              </select>
+            </div>
           </div>
-        </div>
 
-        {/* Impuesto Adicional */}
-        <div>
-          <label className="block text-zinc-400 text-xs font-bold mb-2 ml-1">
-            Impuesto Adicional (ILA)
-          </label>
-          <select
-            name="txtid_impuestos1"
-            value={formData.txtid_impuestos1}
-            onChange={handleChange}
-            className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-2.5 text-sm text-zinc-300 outline-none focus:border-blue-500 appearance-none"
-          >
-            {IMPUESTOS_ADICIONALES.map((imp) => (
-              <option key={imp.id} value={imp.id}>
-                {imp.nombre}
-              </option>
-            ))}
-          </select>
+          {/* IVA E IMPUESTO ADICIONAL */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className={s.label}>¿Afecto a IVA?</label>
+              <div className="flex gap-2 h-[38px]">
+                {["S", "N"].map((opcion) => (
+                  <label
+                    key={opcion}
+                    className={`${s.toggleOption} ${
+                      formData.txtiva === opcion ? s.toggleActive : s.toggleInactive
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="txtiva"
+                      value={opcion}
+                      checked={formData.txtiva === opcion}
+                      onChange={handleChange}
+                      className="hidden"
+                    />
+                    {opcion === "S" ? "SÍ" : "NO"}
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className={s.label}>Impuesto Adicional (ILA)</label>
+              <select
+                name="txtid_impuestos1"
+                value={formData.txtid_impuestos1}
+                onChange={handleChange}
+                className={s.select}
+              >
+                {IMPUESTOS_ADICIONALES.map((imp) => (
+                  <option key={imp.id} value={imp.id}>{imp.nombre}</option>
+                ))}
+              </select>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 };
 
-export default CreateProductForm;
+export default FullProductForm;

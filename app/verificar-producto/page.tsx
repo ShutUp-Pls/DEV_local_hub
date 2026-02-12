@@ -165,26 +165,22 @@ export default function VerificarProducto() {
 
       <main className="max-w-5xl mx-auto p-4 sm:p-8">
         
-        {/* CABECERA Y BUSCADOR: Solo visibles si NO estamos creando */}
-        {!isCreating && (
-          <>
-            <div className="mb-8">
-              <h2 className="text-3xl font-bold">Escanear producto</h2>
-            </div>
-            
-            <SearchBar 
-              barcode={barcode}
-              setBarcode={setBarcode}
-              onSearch={handleSearch}
-              onOpenScanner={() => setShowScanner(true)}
-              loading={loading}
-            />
-          </>
-        )}
+        {/* CABECERA Y BUSCADOR: Siempre visibles */}
+        <div className="mb-8">
+          <h2 className="text-3xl font-bold">Escanear producto</h2>
+        </div>
+        
+        <SearchBar 
+          barcode={barcode}
+          setBarcode={setBarcode}
+          onSearch={handleSearch}
+          onOpenScanner={() => setShowScanner(true)}
+          loading={loading}
+        />
 
         {/* Lógica del Error y Botón de Crear */}
         {error && (
-          <div className="mb-6">
+          <div className="my-6">
             <Alert message={error} type="error" />
             
             {notFoundCode && !formData && (
@@ -201,7 +197,7 @@ export default function VerificarProducto() {
         )}
 
         {formData && (
-          <>
+          <div className="mt-8">
             {isCreating ? (
               <CreateForm 
                 formData={formData}
@@ -232,7 +228,7 @@ export default function VerificarProducto() {
             )}
             
             <Alert message={successMsg} type="success" />
-          </>
+          </div>
         )}
       </main>
     </div>
