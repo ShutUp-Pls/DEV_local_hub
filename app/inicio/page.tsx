@@ -1,11 +1,36 @@
 'use client';
 
+import { useState, useEffect } from "react"; // 1. Importamos useEffect
 import { useSession } from "next-auth/react";
 import Navbar from "../components/Navbar";
 import AppCard from "./components/AppCard";
 
 export default function Inicio() {
   const { data: session } = useSession();
+  
+  // 2. Estado inicial: TRUE (Local por defecto)
+  const [useLocalSearch, setUseLocalSearch] = useState(true);
+
+  // 3. EFECTO DE CARGA: Recuperar la preferencia al entrar
+  useEffect(() => {
+    // Verificamos si estamos en el navegador
+    if (typeof window !== "undefined") {
+      const savedPreference = sessionStorage.getItem("search_mode_local");
+      
+      // Solo si existe un valor guardado, lo aplicamos.
+      // Si no existe, se queda con el valor por defecto (true).
+      if (savedPreference !== null) {
+        setUseLocalSearch(savedPreference === "true");
+      }
+    }
+  }, []);
+
+  // 4. EFECTO DE GUARDADO: Persistir cada cambio
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("search_mode_local", String(useLocalSearch));
+    }
+  }, [useLocalSearch]);
 
   const apps = [
     {
@@ -26,7 +51,11 @@ export default function Inicio() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white font-sans">
-      <Navbar userName={session?.user?.name} />
+      <Navbar 
+        userName={session?.user?.name} 
+        useLocalSearch={useLocalSearch}
+        setUseLocalSearch={setUseLocalSearch}
+      />
 
       <main className="max-w-6xl mx-auto p-8">
         <header className="mb-10">

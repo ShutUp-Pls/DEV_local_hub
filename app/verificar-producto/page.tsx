@@ -181,14 +181,9 @@ export default function VerificarProducto() {
 
       <main className="max-w-5xl mx-auto p-4 sm:p-8">
         
-        {/* CABECERA Y BUSCADOR: Siempre visibles */}
-        <div className="mb-8 flex items-baseline gap-4">
+        {/* CABECERA: Título limpio sin leyenda de modo local */}
+        <div className="mb-8">
           <h2 className="text-3xl font-bold">Escanear producto</h2>
-          {useLocalSearch && (
-            <span className="text-sm font-medium text-blue-400 bg-blue-400/10 px-2 py-1 rounded">
-              Modo Rápido (Local)
-            </span>
-          )}
         </div>
         
         <SearchBar 

@@ -1,34 +1,20 @@
 import platform
-import pyodbc
 import os
 import subprocess
 import csv
-import io
+import sqlite3
+import pyodbc
 from dotenv import load_dotenv
 
 load_dotenv("../.env.local")
 
-# Mantenemos esta función por si necesitas intentar escrituras, 
-# aunque en Linux MDBTools suele ser de solo lectura.
-def obtener_conexion_local():
-    db_path = os.getenv("LOCAL_DATABASE")
-    if not db_path or not os.path.exists(db_path):
-        print(f"[!] Archivo MDB no encontrado en: {db_path}")
-        return None
+SISTEMA = platform.system() # 'Windows' o 'Linux' o 'Darwin' para Mac
+ES_WINDOWS = (SISTEMA == "Windows")
 
-    driver = "MDBTools"
-    connection_string = f'DRIVER={{{driver}}};DBQ={db_path};'
-    try:
-        conn = pyodbc.connect(connection_string, autocommit=True)
-        return conn
-    except Exception as e:
-        print(f"[!] Error de conexión ODBC: {e}")
-        return None
-
-# --- FUNCIONES AUXILIARES ---
+DB_MDB_PATH = os.getenv("LOCAL_DATABASE")
+DB_SQLITE_PATH = "productos_local.sqlite"
 
 def safe_str(val):
-    """Maneja valores None para evitar 'None' en el string final"""
     return str(val).strip() if val else ""
 
 def safe_int(val):
@@ -41,24 +27,174 @@ def safe_float(val):
     try: return float(str(val).replace(',', '.'))
     except: return 0.0
 
-def safe_str(val):
-    return str(val).strip() if val else ""
+# ==========================================
+# BLOQUE WINDOWS (Directo al MDB)
+# ==========================================
 
-def buscar_producto_local(codigo: str):
-    """
-    Busca en MDB usando streaming (tubería) para NO cargar la RAM.
-    Lee línea por línea y mata el proceso apenas encuentra el dato.
-    """
-    db_path = os.getenv("LOCAL_DATABASE")
-    if not db_path or not os.path.exists(db_path):
-        print("[X] Base de datos local no encontrada.")
+def conectar_mdb_windows():
+    if not os.path.exists(DB_MDB_PATH):
+        print(f"[X] No se encuentra el archivo .mdb en: {DB_MDB_PATH}")
+        return None
+    
+    # Driver estándar de Access. 
+    # Asegúrate de tener instalado "Microsoft Access Database Engine"
+    driver = "Microsoft Access Driver (*.mdb, *.accdb)"
+    conn_str = f'DRIVER={{{driver}}};DBQ={DB_MDB_PATH};'
+    
+    try:
+        return pyodbc.connect(conn_str)
+    except Exception as e:
+        print(f"[X] Error conectando ODBC (Windows): {e}")
         return None
 
-    codigo_buscado = str(codigo).strip()
+def buscar_windows(codigo):
+    conn = conectar_mdb_windows()
+    if not conn: return None
     
-    # 1. Iniciamos el proceso, pero NO usamos .communicate()
-    # bufsize=1 hace que la línea esté disponible apenas se escriba
-    cmd = ['mdb-export', db_path, 'producto']
+    cursor = conn.cursor()
+    try:
+        # Consulta directa al MDB
+        sql = "SELECT * FROM producto WHERE codigo = ? OR cod_interno = ?"
+        cursor.execute(sql, (codigo, codigo))
+        row = cursor.fetchone()
+        
+        if not row: return None
+        
+        # Mapeo de columnas (PyODBC devuelve objetos Row accesibles por nombre si se configura, o por índice)
+        # Para seguridad, accedemos por nombre usando cursor.description
+        col_names = [column[0].lower() for column in cursor.description]
+        row_dict = dict(zip(col_names, row))
+
+        return {
+            "found": True,
+            "txtid_producto": safe_str(row_dict.get('id_producto')),
+            "txtcodigo": safe_str(row_dict.get('codigo')),
+            "txtcod_interno": safe_str(row_dict.get('cod_interno')),
+            "txtnombre": safe_str(row_dict.get('nombre')),
+            "txtfamilia_producto": safe_str(row_dict.get('familia')),
+            "txtsubfamilia_producto": safe_str(row_dict.get('subfamilia')),
+            "txtunidad": safe_str(row_dict.get('unidad')),
+            "txtiva": safe_str(row_dict.get('afecto_iva')),
+            "txtid_impuestos1": safe_str(row_dict.get('id_impuestos')),
+            "txtprecio_venta": safe_str(row_dict.get('precio_venta')),
+            "txtprecio_venta_boleta": safe_str(row_dict.get('precio_venta_boleta')),
+            "txtstock_critico": safe_str(row_dict.get('stock_critico')),
+            "txtdias_reposion": safe_str(row_dict.get('dias_reposion')),
+            "txtvigente": safe_str(row_dict.get('vigente')),
+            "txtfactor_compra": safe_str(row_dict.get('factor_compra')),
+            "txtfecha_creacion": "", 
+            "txtporcentaje_iva": "19" 
+        }
+    except Exception as e:
+        print(f"[X] Error Búsqueda Windows: {e}")
+        return None
+    finally:
+        conn.close()
+
+def actualizar_windows(data):
+    conn = conectar_mdb_windows()
+    if not conn: return False
+    
+    cursor = conn.cursor()
+    try:
+        id_producto = safe_int(data['txtid_producto'])
+        
+        sql = """
+            UPDATE producto 
+            SET 
+                nombre = ?, cod_interno = ?, familia = ?, subfamilia = ?, 
+                unidad = ?, afecto_iva = ?, id_impuestos = ?, 
+                precio_venta = ?, precio_venta_boleta = ?, 
+                stock_critico = ?, dias_reposion = ?, vigente = ?, factor_compra = ?
+            WHERE id_producto = ?
+        """
+        
+        params = (
+            str(data['txtnombre'])[:80],
+            str(data['txtcod_interno'])[:20],
+            safe_int(data['txtfamilia_producto']),
+            safe_int(data['txtsubfamilia_producto']),
+            str(data['txtunidad'])[:10],
+            str(data['txtiva'])[:1],
+            safe_int(data['txtid_impuestos1']),
+            safe_float(data['txtprecio_venta']),
+            safe_float(data['txtprecio_venta_boleta']),
+            safe_float(data['txtstock_critico']),
+            safe_int(data['txtdias_reposion']),
+            str(data['txtvigente'])[:1],
+            safe_int(data['txtfactor_compra']),
+            id_producto
+        )
+
+        cursor.execute(sql, params)
+        conn.commit()
+        print(f"[V] (WIN) Producto {id_producto} actualizado DIRECTAMENTE en MDB.")
+        return True
+    except Exception as e:
+        print(f"[X] Error UPDATE Windows: {e}")
+        return False
+    finally:
+        conn.close()
+
+# ==========================================
+# BLOQUE LINUX (Puente SQLite)
+# ==========================================
+
+def inicializar_db_linux():
+    """
+    Aplica la lógica de tu búsqueda: Usa mdb-export para leer el MDB
+    y vuelca los datos en un SQLite local que SI permite escritura.
+    Solo corre si el MDB es más nuevo que el SQLite.
+    """
+    if not os.path.exists(DB_MDB_PATH):
+        print(f"[X] No se encuentra el archivo MDB: {DB_MDB_PATH}")
+        return False
+
+    # Verificar si necesitamos sincronizar (Si el MDB se actualizó externamente)
+    if os.path.exists(DB_SQLITE_PATH):
+        mdb_time = os.path.getmtime(DB_MDB_PATH)
+        sqlite_time = os.path.getmtime(DB_SQLITE_PATH)
+        if sqlite_time > mdb_time:
+            return True # SQLite ya está actualizado
+
+    print("[*] Detectado cambio en MDB o inicio fresco. Migrando a SQLite...")
+    
+    # 1. Crear conexión a SQLite (se crea el archivo si no existe)
+    conn = sqlite3.connect(DB_SQLITE_PATH)
+    cursor = conn.cursor()
+
+    # 2. Crear tabla (Esquema simplificado basado en tu código)
+    cursor.execute("DROP TABLE IF EXISTS producto")
+    cursor.execute("""
+        CREATE TABLE producto (
+            id_producto INTEGER PRIMARY KEY,
+            codigo TEXT,
+            cod_interno TEXT,
+            nombre TEXT,
+            familia INTEGER,
+            subfamilia INTEGER,
+            unidad TEXT,
+            afecto_iva TEXT,
+            id_impuestos INTEGER,
+            precio_venta REAL,
+            precio_venta_boleta REAL,
+            stock_critico REAL,
+            dias_reposion INTEGER,
+            vigente TEXT,
+            factor_compra INTEGER
+        )
+    """)
+    # Índices para búsqueda instantánea (O(1) en vez de O(N) del CSV)
+    cursor.execute("CREATE INDEX idx_codigo ON producto(codigo)")
+    cursor.execute("CREATE INDEX idx_cod_interno ON producto(cod_interno)")
+    
+    conn.commit()
+
+    # 3. USAR TU TÉCNICA DE SUBPROCESS (Streaming)
+    # Esto evita cargar los 50k productos en RAM de Python.
+    print("[*] Ejecutando mdb-export (Streaming)...")
+    cmd = ['mdb-export', DB_MDB_PATH, 'producto']
+    
     proceso = subprocess.Popen(
         cmd, 
         stdout=subprocess.PIPE, 
@@ -68,146 +204,128 @@ def buscar_producto_local(codigo: str):
     )
 
     try:
-        # 2. Creamos el lector CSV conectado directamente al flujo de salida (stdout)
-        # Esto no carga el archivo, solo espera que lleguen datos.
+        # Leemos el stream del proceso
         lector_csv = csv.DictReader(proceso.stdout)
-
-        producto_encontrado = None
-
-        # 3. Iteramos. Python pedirá una línea, la procesará y la descartará de la RAM.
-        for fila in lector_csv:
-            # Chequeo rápido de coincidencia
-            if (fila.get('codigo', '').strip() == codigo_buscado or 
-                fila.get('cod_interno', '').strip() == codigo_buscado):
-                
-                producto_encontrado = fila
-                break # ¡Encontrado! Salimos del bucle inmediatamente.
-
-        # 4. Limpieza vital: Si encontramos el producto (o si cancelamos),
-        # debemos matar el proceso mdb-export para que no siga leyendo el archivo en background.
-        if proceso.poll() is None:
-            proceso.terminate()
-            try:
-                proceso.wait(timeout=1)
-            except subprocess.TimeoutExpired:
-                proceso.kill()
-
-        if not producto_encontrado:
-            return None
-
-        # 5. Mapeo de datos (Igual que antes)
-        return {
-            "found": True,
-            "txtid_producto": safe_str(producto_encontrado.get('id_producto')),
-            "txtcodigo": safe_str(producto_encontrado.get('codigo')),
-            "txtcod_interno": safe_str(producto_encontrado.get('cod_interno')),
-            "txtnombre": safe_str(producto_encontrado.get('nombre')),
-            "txtfamilia_producto": safe_str(producto_encontrado.get('familia', '0')),
-            "txtsubfamilia_producto": safe_str(producto_encontrado.get('subfamilia', '0')),
-            "txtunidad": safe_str(producto_encontrado.get('unidad', 'UN')),
-            "txtiva": safe_str(producto_encontrado.get('afecto_iva', 'S')),
-            "txtid_impuestos1": safe_str(producto_encontrado.get('id_impuestos', '0')),
-            "txtprecio_venta": safe_str(producto_encontrado.get('precio_venta', '0')),
-            "txtprecio_venta_boleta": safe_str(producto_encontrado.get('precio_venta_boleta', '0')),
-            "txtstock_critico": safe_str(producto_encontrado.get('stock_critico', '0')),
-            "txtdias_reposion": safe_str(producto_encontrado.get('dias_reposion', '0')),
-            "txtvigente": safe_str(producto_encontrado.get('vigente', 'S')),
-            "txtfactor_compra": safe_str(producto_encontrado.get('factor_compra', '1')),
-            "txtfecha_creacion": "", 
-            "txtporcentaje_iva": "19" 
-        }
-
-    except Exception as e:
-        print(f"[X] Error en búsqueda streaming: {e}")
-        # Asegurar muerte del subproceso en caso de error
-        if proceso.poll() is None:
-            proceso.kill()
-        return None
-
-def sincronizar_producto_local(data: dict):
-    """
-    Actualiza la tabla 'producto' local.
-    """
-    print(f"[*] Sincronización local ID: {data.get('txtid_producto')}...")
-    
-    conn = obtener_conexion_local()
-    if not conn: return False
-
-    cursor = conn.cursor()
-
-    try:
-        # 1. Conversión estricta de tipos basada en estructura_mdb.txt
-        id_producto = safe_int(data['txtid_producto']) # Long Integer
         
-        nombre = str(data['txtnombre'])[:80]           # Text(80)
-        cod_interno = str(data['txtcod_interno'])[:20] # Text(20)
-        
-        familia = safe_int(data['txtfamilia_producto'])     # Long Integer
-        subfamilia = safe_int(data['txtsubfamilia_producto']) # Long Integer
-        
-        unidad = str(data['txtunidad'])[:10]           # Text(10)
-        afecto_iva = str(data['txtiva'])[:1]           # Text(1)
-        
-        id_impuestos = safe_int(data['txtid_impuestos1']) # Integer
-        
-        precio_venta = safe_float(data['txtprecio_venta'])             # Numeric
-        precio_venta_boleta = safe_float(data['txtprecio_venta_boleta']) # Numeric
-        
-        stock_critico = safe_float(data['txtstock_critico']) # Numeric
-        dias_reposion = safe_int(data['txtdias_reposion'])   # Integer (Columna con typo)
-        
-        vigente = str(data['txtvigente'])[:1]          # Text(1)
-        factor_compra = safe_int(data['txtfactor_compra']) # Integer
+        buffer_insert = []
+        contador = 0
 
-        # 2. Query con nombres de columna exactos
-        sql = """
-            UPDATE producto 
-            SET 
-                nombre = ?,
-                cod_interno = ?,
-                familia = ?,
-                subfamilia = ?,
-                unidad = ?,
-                afecto_iva = ?,
-                id_impuestos = ?,
-                precio_venta = ?,
-                precio_venta_boleta = ?,
-                stock_critico = ?,
-                dias_reposion = ?,
-                vigente = ?,
-                factor_compra = ?
-            WHERE id_producto = ?
+        # Insertamos en lotes para velocidad extrema
+        sql_insert = """
+            INSERT INTO producto VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
-        
-        params = (
-            nombre, 
-            cod_interno, 
-            familia, 
-            subfamilia, 
-            unidad, 
-            afecto_iva, 
-            id_impuestos, 
-            precio_venta, 
-            precio_venta_boleta, 
-            stock_critico, 
-            dias_reposion, 
-            vigente, 
-            factor_compra,
-            id_producto
-        )
 
-        cursor.execute(sql, params)
-        print(f"[V] Producto {id_producto} sincronizado localmente.")
+        for fila in lector_csv:
+            # Mapeo y limpieza al vuelo
+            datos = (
+                safe_int(fila.get('id_producto')),
+                safe_str(fila.get('codigo')),
+                safe_str(fila.get('cod_interno')),
+                safe_str(fila.get('nombre')),
+                safe_int(fila.get('familia')),
+                safe_int(fila.get('subfamilia')),
+                safe_str(fila.get('unidad')),
+                safe_str(fila.get('afecto_iva')),
+                safe_int(fila.get('id_impuestos')),
+                safe_float(fila.get('precio_venta')),
+                safe_float(fila.get('precio_venta_boleta')),
+                safe_float(fila.get('stock_critico')),
+                safe_int(fila.get('dias_reposion')),
+                safe_str(fila.get('vigente')),
+                safe_int(fila.get('factor_compra'))
+            )
+            buffer_insert.append(datos)
+            
+            if len(buffer_insert) >= 5000:
+                cursor.executemany(sql_insert, buffer_insert)
+                conn.commit()
+                buffer_insert = []
+                print(f"    -> Procesados {contador} registros...")
+            
+            contador += 1
+
+        # Insertar remanentes
+        if buffer_insert:
+            cursor.executemany(sql_insert, buffer_insert)
+            conn.commit()
+
+        print(f"[V] Migración completada. Total: {contador} productos.")
         return True
 
     except Exception as e:
-        print(f"[X] Error UPDATE local: {e}")
-        # Tip para debugging en Linux
-        if "Read-only" in str(e):
-            print("[!] MDBTools en Linux suele ser de solo lectura para UPDATEs.")
+        print(f"[X] Error en migración MDB -> SQLite: {e}")
         return False
     finally:
-        try:
-            cursor.close()
-            conn.close()
-        except: pass
+        if proceso.poll() is None:
+            proceso.kill()
+        conn.close()
+
+def buscar_linux(codigo):
+    inicializar_db_linux()
+    conn = sqlite3.connect(DB_SQLITE_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT * FROM producto WHERE codigo = ? OR cod_interno = ? LIMIT 1", (codigo, codigo))
+        fila = cursor.fetchone()
+        if not fila: return None
+        # Mapeo (copiar el de la respuesta anterior)
+        return {
+            "found": True,
+            "txtid_producto": safe_str(fila['id_producto']),
+            "txtcodigo": safe_str(fila['codigo']),
+            "txtcod_interno": safe_str(fila['cod_interno']),
+            "txtnombre": safe_str(fila['nombre']),
+            "txtfamilia_producto": safe_str(fila['familia']),
+            "txtsubfamilia_producto": safe_str(fila['subfamilia']),
+            "txtunidad": safe_str(fila['unidad']),
+            "txtiva": safe_str(fila['afecto_iva']),
+            "txtid_impuestos1": safe_str(fila['id_impuestos']),
+            "txtprecio_venta": safe_str(fila['precio_venta']),
+            "txtprecio_venta_boleta": safe_str(fila['precio_venta_boleta']),
+            "txtstock_critico": safe_str(fila['stock_critico']),
+            "txtdias_reposion": safe_str(fila['dias_reposion']),
+            "txtvigente": safe_str(fila['vigente']),
+            "txtfactor_compra": safe_str(fila['factor_compra']),
+            "txtfecha_creacion": "", "txtporcentaje_iva": "19" 
+        }
+    finally:
+        conn.close()
+
+def actualizar_linux(data):
+    inicializar_db_linux()
+    conn = sqlite3.connect(DB_SQLITE_PATH)
+    cursor = conn.cursor()
+    try:
+        # (Lógica UPDATE SQLite idéntica a la anterior)
+        id_prod = safe_int(data['txtid_producto'])
+        sql = "UPDATE producto SET nombre=?, cod_interno=?, familia=?, subfamilia=?, unidad=?, afecto_iva=?, id_impuestos=?, precio_venta=?, precio_venta_boleta=?, stock_critico=?, dias_reposion=?, vigente=?, factor_compra=? WHERE id_producto=?"
+        params = (
+            str(data['txtnombre'])[:80], str(data['txtcod_interno'])[:20], safe_int(data['txtfamilia_producto']),
+            safe_int(data['txtsubfamilia_producto']), str(data['txtunidad'])[:10], str(data['txtiva'])[:1],
+            safe_int(data['txtid_impuestos1']), safe_float(data['txtprecio_venta']), safe_float(data['txtprecio_venta_boleta']),
+            safe_float(data['txtstock_critico']), safe_int(data['txtdias_reposion']), str(data['txtvigente'])[:1],
+            safe_int(data['txtfactor_compra']), id_prod
+        )
+        cursor.execute(sql, params)
+        conn.commit()
+        print(f"[V] (LINUX) Producto {id_prod} actualizado en SQLite.")
+        return True
+    except Exception as e:
+        print(f"[X] Error UPDATE SQLite: {e}")
+        return False
+    finally:
+        conn.close()
+
+
+# ==========================================
+# INTERFAZ PÚBLICA (El Router)
+# ==========================================
+
+def buscar_producto_local(codigo):
+    if ES_WINDOWS: return buscar_windows(codigo)
+    else: return buscar_linux(codigo)
+
+def sincronizar_producto_local(data):
+    if ES_WINDOWS: return actualizar_windows(data)
+    else: return actualizar_linux(data)

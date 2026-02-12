@@ -2,14 +2,14 @@
 
 import { signOut } from "next-auth/react";
 import { useState, useEffect, useRef } from "react";
+import { RjcIndicator, SearchSwitch, ConnectionStatus } from "./NavbarComponents";
+import NavbarMenu from "./NavbarMenu";
 
 interface NavbarProps {
   userName?: string | null;
   useLocalSearch: boolean;
   setUseLocalSearch: (value: boolean) => void;
 }
-
-type ConnectionStatus = 'loading' | 'connected' | 'failed' | 'validating';
 
 export default function Navbar({ userName, useLocalSearch, setUseLocalSearch }: NavbarProps) {
   const [rjcStatus, setRjcStatus] = useState<ConnectionStatus>('validating');
@@ -27,9 +27,7 @@ export default function Navbar({ userName, useLocalSearch, setUseLocalSearch }: 
 
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/check-rjc`);
-
       if (timerRef.current) clearTimeout(timerRef.current);
-
       const data = await res.json();
       
       if (data.status === 'connected') {
@@ -53,84 +51,59 @@ export default function Navbar({ userName, useLocalSearch, setUseLocalSearch }: 
 
   return (
     <nav className="border-b border-zinc-800 bg-zinc-900/50 backdrop-blur-md sticky top-0 z-10">
-      <div className="max-w-6xl mx-auto px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-0">
+      <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
 
+        {/* --- TÍTULO --- */}
         <a 
           href={process.env.NEXT_PUBLIC_PRINCIPAL_URL || '#'}
-          className="hover:opacity-80 transition-opacity cursor-pointer"
+          className="hover:opacity-80 transition-opacity cursor-pointer z-20"
         >
           <h1 className="text-2xl font-bold tracking-tight text-white">
             Local<span className="text-blue-500">HUB</span>
           </h1>
         </a>
         
-        <div className="flex flex-wrap justify-center items-center gap-4 sm:gap-6">
-
-          {/* --- INTERRUPTOR DE BÚSQUEDA LOCAL --- */}
-          <div 
-            className="flex items-center gap-3 bg-zinc-800/50 px-3 py-1.5 rounded-full border border-zinc-700/50 cursor-pointer hover:bg-zinc-800 transition-colors"
-            onClick={() => setUseLocalSearch(!useLocalSearch)}
-            title="Alternar entre búsqueda en RJC Web y Base de Datos Local"
-          >
-            <span className={`text-xs font-semibold select-none ${useLocalSearch ? 'text-blue-400' : 'text-zinc-400'}`}>
-              {useLocalSearch ? 'Búsqueda Local' : 'Búsqueda Web'}
-            </span>
-            
-            <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${
-                useLocalSearch ? 'bg-blue-600' : 'bg-zinc-600'
-              }`}
-            >
-              <span
-                className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
-                  useLocalSearch ? 'translate-x-5' : 'translate-x-1'
-                }`}
-              />
-            </div>
+        <div className="flex items-center gap-4 sm:gap-6">
+          
+          {/* 1. Feedback (Se oculta en 'sm') */}
+          <div className="hidden sm:block">
+            <RjcIndicator status={rjcStatus} onRetry={() => checkConnection(true)} />
           </div>
 
-          {/* --- INDICADOR DE ESTADO RJC --- */}
-          <div className="flex items-center text-xs font-medium bg-zinc-900/80 px-3 py-1.5 rounded-full border border-zinc-800">
-
-            {rjcStatus === 'loading' && (
-              <span className="flex items-center text-yellow-500 gap-2">
-                <span className="animate-spin h-2 w-2 border-2 border-yellow-500 border-t-transparent rounded-full"></span>
-                Conectando RJC...
-              </span>
-            )}
-
-            {(rjcStatus === 'connected' || rjcStatus === 'validating') && (
-              <span className="flex items-center text-green-500 gap-2">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                </span>
-                RJC Conectado
-              </span>
-            )}
-
-            {rjcStatus === 'failed' && (
-              <button 
-                onClick={() => checkConnection(true)}
-                className="flex items-center text-red-400 gap-2 hover:text-red-300 hover:underline transition-all cursor-pointer"
-                title="Click para reintentar conexión"
-              >
-                <span className="h-2 w-2 rounded-full bg-red-500"></span>
-                Fallo conexión (Reintentar ↻)
-              </button>
-            )}
+          {/* 2. Switch (Se oculta en 'md') */}
+          <div className="hidden md:block">
+            <SearchSwitch useLocalSearch={useLocalSearch} setUseLocalSearch={setUseLocalSearch} />
           </div>
 
-          <div className="h-6 w-px bg-zinc-800 hidden sm:block"></div>
+          {/* === BLOQUE DE USUARIO Y SALIR (Contracción unificada en LG) === */}
+          
+          {/* Separador: Ahora se oculta junto con el bloque en 'lg' */}
+          <div className="h-6 w-px bg-zinc-800 hidden lg:block"></div>
 
-          <span className="text-sm text-zinc-400 hidden sm:inline">
+          {/* 3. Usuario: Texto simple */}
+          <span className="text-sm text-zinc-400 hidden lg:inline">
             {userName || "Usuario"}
           </span>
+
+          {/* 4. Botón Salir: Estilo actualizado (igual al menú móvil) */}
           <button 
             onClick={() => signOut({ callbackUrl: '/' })}
-            className="text-sm px-4 py-2 bg-zinc-800 hover:bg-red-900/30 hover:text-red-400 text-zinc-300 rounded-lg border border-zinc-700 transition-all"
+            className="hidden lg:block text-sm text-red-400 hover:text-red-300 hover:bg-zinc-800/50 px-3 py-2 rounded-lg transition-colors"
           >
-            Salir
+            Cerrar Sesión
           </button>
+
+          {/* --- MENÚ RESPONSIVE --- */}
+          {/* Aparece cuando el bloque Usuario/Salir se oculta (< LG) */}
+          <NavbarMenu 
+            userName={userName}
+            useLocalSearch={useLocalSearch}
+            setUseLocalSearch={setUseLocalSearch}
+            rjcStatus={rjcStatus}
+            onRetryConnection={() => checkConnection(true)}
+            onSignOut={() => signOut({ callbackUrl: '/' })}
+          />
+
         </div>
       </div>
     </nav>

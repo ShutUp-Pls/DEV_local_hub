@@ -40,7 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="es">
       <body>
         {/* El refetchInterval es vital. Comprueba la sesión cada 5 segundos */}
-        <SessionProvider refetchInterval={5}> 
+        <SessionProvider refetchInterval={300}> 
           <SessionGuard>
             {children}
           </SessionGuard>

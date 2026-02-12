@@ -1,5 +1,6 @@
 import re
 import bcrypt
+from datetime import datetime
 
 from bs4 import BeautifulSoup
 from fastapi import FastAPI, HTTPException
@@ -201,30 +202,80 @@ def guardar_producto(data: ProductoForm):
     session = rjc.get_session()
     
     try:
-        print("[*] Obteniendo contexto para guardar...")
+        print("[*] [Guardar] Accediendo directo a ficha remota...")
         url_modificar = f"{rjc.BASE_URL}/producto/modificar.aspx"
         
-        payload_refresh, _, _ = rjc.obtener_payload_completo(session, url_modificar, method="POST", data_prev={"txtid_producto": data.txtid_producto})
-        
+        # Obtenemos el ViewState y cookies necesarios en un solo viaje
+        payload_refresh, _, _ = rjc.obtener_payload_completo(
+            session, 
+            url_modificar, 
+            method="POST", 
+            data_prev={"txtid_producto": data.txtid_producto}
+        )
+
+        datos_frontend = data.dict()
+
+        # Si venimos de búsqueda local, la fecha llega vacía ("").
+        # Si la enviamos vacía, el servidor explota (StartIndex Error).
+        # Recuperamos la fecha real que nos acaba de dar el servidor en 'payload_refresh'.
+        if not datos_frontend.get("txtfecha_creacion"):
+            server_date = payload_refresh.get("txtfecha_creacion", "")
+            
+            if server_date:
+                # Caso ideal: Usamos la fecha que ya tiene el servidor
+                del datos_frontend["txtfecha_creacion"] 
+            else:
+                # Caso emergencia: El servidor tampoco tiene fecha, inventamos una para que no falle.
+                fallback_date = datetime.now().strftime("%d/%m/%Y")
+                print(f"[!] Fecha perdida. Usando fallback: {fallback_date}")
+                datos_frontend["txtfecha_creacion"] = fallback_date
+
+        # Preparamos el paquete final
         payload_final = payload_refresh.copy()
-        payload_final.update(data.dict())
+        payload_final.update(datos_frontend)
         
+        # --- GUARDADO CON REFERER (La clave del éxito) ---
         url_guardar = f"{rjc.BASE_URL}/producto/modificar_gra.aspx"
         print(f"[*] Guardando cambios remotos ID: {data.txtid_producto}...")
         
-        resp_guardar = session.post(url_guardar, data=payload_final)
+        # Simulamos ser un navegador real viniendo de modificar.aspx
+        headers_extra = {
+            "Referer": url_modificar,
+            "Origin": rjc.BASE_URL,
+            "Content-Type": "application/x-www-form-urlencoded"
+        }
+        session.headers.update(headers_extra)
         
+        resp_guardar = session.post(url_guardar, data=payload_final)
+        resp_guardar.encoding = 'latin-1'
+        
+        # Limpieza inmediata de headers
+        del session.headers["Referer"]
+        del session.headers["Origin"]
+        
+        # --- VALIDACIÓN ---
         remote_success = False
-        if "Producto modificado" in resp_guardar.text: remote_success = True
-        else: return {"success": False, "message": "RJC Remoto no confirmó la grabación"}
+        texto_respuesta = resp_guardar.text.lower()
+        
+        if "producto modificado" in texto_respuesta or "grabado" in texto_respuesta: 
+            remote_success = True
+        else:
+            # Si falla, hacemos un debug rápido del título
+            soup_err = BeautifulSoup(resp_guardar.text, 'html.parser')
+            for s in soup_err(["script", "style"]): s.extract()
+            body_preview = soup_err.get_text(separator=' ', strip=True)[:150]
+            
+            print(f"[!] Fallo remoto. Respuesta: {body_preview}")
+            return {"success": False, "message": f"RJC rechazó la grabación. {body_preview}..."}
 
+        # --- SINCRONIZACIÓN LOCAL ---
         local_msg = ""
         if remote_success:
+            # Si RJC aceptó, guardamos en SQLite
             datos_dict = data.dict()
-
             local_ok = lcl.sincronizar_producto_local(datos_dict)
             if local_ok: local_msg = " y sincronizado localmente"
-            else: local_msg = " (pero falló la copia local, revisa la consola)"
+            else: local_msg = " (pero falló la copia local)"
 
         return {"success": True, "message": f"Producto guardado correctamente{local_msg}"}
 
@@ -280,13 +331,24 @@ def crear_producto(data: ProductoForm):
         url_grabar = f"{rjc.BASE_URL}/producto/agregar_gra.aspx"
         print(f"[*] Enviando datos a {url_grabar}...")
         
+        headers_extra = {
+            "Referer": url_agregar,
+            "Origin": rjc.BASE_URL
+        }
+        session.headers.update(headers_extra)
+
         resp_guardar = session.post(url_grabar, data=payload_final)
+        resp_guardar.encoding = 'latin-1'
+
+        del session.headers["Referer"]
+        del session.headers["Origin"]
         
         remote_success = False
-        if "Producto Grabado" in resp_guardar.text: remote_success = True
+        if "producto grabado" in resp_guardar.text.lower(): remote_success = True
         else:
-            print(f"[!] Respuesta sospechosa: {resp_guardar.text[:200]}...")
-            return {"success": False, "message": "RJC no confirmó la creación (No se halló 'Producto Grabado')"}
+            soup_err = BeautifulSoup(resp_guardar.text, 'html.parser')
+            print(f"[!] Fallo Creación. Preview: {soup_err.get_text(separator=' ', strip=True)[:200]}")
+            return {"success": False, "message": "RJC no confirmó la creación"}
 
         local_msg = ""
         if remote_success:

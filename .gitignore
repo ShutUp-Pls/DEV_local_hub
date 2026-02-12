@@ -29,6 +29,9 @@
 .DS_Store
 *.pem
 
+*.sqlite
+script-*
+
 # debug
 npm-debug.log*
 yarn-debug.log*
