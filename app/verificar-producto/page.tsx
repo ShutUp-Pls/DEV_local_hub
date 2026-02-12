@@ -38,6 +38,9 @@ export default function VerificarProducto() {
   const [formData, setFormData] = useState<ProductoFormData | null>(null);
   const [originalData, setOriginalData] = useState<ProductoFormData | null>(null);
   
+  // NUEVO: Estado para controlar el modo de búsqueda (Local vs Web)
+  const [useLocalSearch, setUseLocalSearch] = useState(false);
+
   // Estados de UI
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -70,8 +73,13 @@ export default function VerificarProducto() {
     setNotFoundCode(""); 
     setIsCreating(false);
 
+    // Selección dinámica del endpoint basado en el switch
+    const endpoint = useLocalSearch 
+      ? `${process.env.NEXT_PUBLIC_API_URL}/api/buscar-producto-local`
+      : `${process.env.NEXT_PUBLIC_API_URL}/api/buscar-producto`;
+
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/buscar-producto`, {
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ codigo: codeToSearch }),
@@ -124,6 +132,8 @@ export default function VerificarProducto() {
     setError("");
     setSuccessMsg("");
 
+    // Nota: El guardado siempre va a la API principal (que luego sincroniza la local)
+    // por lo tanto no cambiamos los endpoints de guardado.
     const endpoint = isCreating 
       ? `${process.env.NEXT_PUBLIC_API_URL}/api/crear-producto`
       : `${process.env.NEXT_PUBLIC_API_URL}/api/guardar-producto`;
@@ -154,7 +164,13 @@ export default function VerificarProducto() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white font-sans pb-20">
-      <Navbar userName={session?.user?.name} />
+      
+      {/* Pasamos los estados del switch al Navbar */}
+      <Navbar 
+        userName={session?.user?.name} 
+        useLocalSearch={useLocalSearch}
+        setUseLocalSearch={setUseLocalSearch}
+      />
 
       {showScanner && (
         <BarcodeScanner 
@@ -166,8 +182,13 @@ export default function VerificarProducto() {
       <main className="max-w-5xl mx-auto p-4 sm:p-8">
         
         {/* CABECERA Y BUSCADOR: Siempre visibles */}
-        <div className="mb-8">
+        <div className="mb-8 flex items-baseline gap-4">
           <h2 className="text-3xl font-bold">Escanear producto</h2>
+          {useLocalSearch && (
+            <span className="text-sm font-medium text-blue-400 bg-blue-400/10 px-2 py-1 rounded">
+              Modo Rápido (Local)
+            </span>
+          )}
         </div>
         
         <SearchBar 

@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from typing import Optional
 
 import rjc_conexion as rjc
-from local_db import sincronizar_producto_local
+import local_db as lcl
 
 app = FastAPI()
 
@@ -81,6 +81,23 @@ def login(data: LoginRequest):
         raise HTTPException(status_code=401, detail="Credenciales incorrectas")
 
     return {"id": user["username"], "username": user["username"], "status": "active"}
+
+@app.post("/api/buscar-producto-local")
+def buscar_producto_local_endpoint(data: BusquedaRequest):
+    print(f"[*] Buscando LOCALMENTE código: {data.codigo}...")
+    try:
+        producto = lcl.buscar_producto_local(data.codigo)
+        
+        if producto:
+            print(f"[V] Producto encontrado en local: {producto['txtnombre']}")
+            return producto
+        else:
+            print(f"[!] Producto {data.codigo} no encontrado en local.")
+            return {"found": False, "message": f"Producto no encontrado en Base Local ({data.codigo})"}
+            
+    except Exception as e:
+        print(f"Error Local Search: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/buscar-producto")
 def buscar_producto_detalle(data: BusquedaRequest):
@@ -205,7 +222,7 @@ def guardar_producto(data: ProductoForm):
         if remote_success:
             datos_dict = data.dict()
 
-            local_ok = sincronizar_producto_local(datos_dict)
+            local_ok = lcl.sincronizar_producto_local(datos_dict)
             if local_ok: local_msg = " y sincronizado localmente"
             else: local_msg = " (pero falló la copia local, revisa la consola)"
 
@@ -273,7 +290,7 @@ def crear_producto(data: ProductoForm):
 
         local_msg = ""
         if remote_success:
-            local_ok = sincronizar_producto_local(data.dict())
+            local_ok = lcl.sincronizar_producto_local(data.dict())
             if local_ok: local_msg = " y sincronizado localmente"
 
         return {"success": True, "message": f"Producto creado exitosamente{local_msg}"}

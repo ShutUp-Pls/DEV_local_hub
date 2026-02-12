@@ -5,13 +5,14 @@ import { useState, useEffect, useRef } from "react";
 
 interface NavbarProps {
   userName?: string | null;
+  useLocalSearch: boolean;
+  setUseLocalSearch: (value: boolean) => void;
 }
 
 type ConnectionStatus = 'loading' | 'connected' | 'failed' | 'validating';
 
-export default function Navbar({ userName }: NavbarProps) {
+export default function Navbar({ userName, useLocalSearch, setUseLocalSearch }: NavbarProps) {
   const [rjcStatus, setRjcStatus] = useState<ConnectionStatus>('validating');
-
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const checkConnection = async (isManualRetry = false) => {
@@ -52,7 +53,7 @@ export default function Navbar({ userName }: NavbarProps) {
 
   return (
     <nav className="border-b border-zinc-800 bg-zinc-900/50 backdrop-blur-md sticky top-0 z-10">
-      <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
+      <div className="max-w-6xl mx-auto px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-0">
 
         <a 
           href={process.env.NEXT_PUBLIC_PRINCIPAL_URL || '#'}
@@ -63,8 +64,31 @@ export default function Navbar({ userName }: NavbarProps) {
           </h1>
         </a>
         
-        <div className="flex items-center gap-6">
+        <div className="flex flex-wrap justify-center items-center gap-4 sm:gap-6">
 
+          {/* --- INTERRUPTOR DE BÚSQUEDA LOCAL --- */}
+          <div 
+            className="flex items-center gap-3 bg-zinc-800/50 px-3 py-1.5 rounded-full border border-zinc-700/50 cursor-pointer hover:bg-zinc-800 transition-colors"
+            onClick={() => setUseLocalSearch(!useLocalSearch)}
+            title="Alternar entre búsqueda en RJC Web y Base de Datos Local"
+          >
+            <span className={`text-xs font-semibold select-none ${useLocalSearch ? 'text-blue-400' : 'text-zinc-400'}`}>
+              {useLocalSearch ? 'Búsqueda Local' : 'Búsqueda Web'}
+            </span>
+            
+            <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${
+                useLocalSearch ? 'bg-blue-600' : 'bg-zinc-600'
+              }`}
+            >
+              <span
+                className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                  useLocalSearch ? 'translate-x-5' : 'translate-x-1'
+                }`}
+              />
+            </div>
+          </div>
+
+          {/* --- INDICADOR DE ESTADO RJC --- */}
           <div className="flex items-center text-xs font-medium bg-zinc-900/80 px-3 py-1.5 rounded-full border border-zinc-800">
 
             {rjcStatus === 'loading' && (

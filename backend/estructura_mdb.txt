@@ -1,0 +1,527 @@
+ESTRUCTURA DEL ARCHIVO: rjc_prod_f1578.mdb
+==================================================
+
+TABLA: bodega
+-------------
+  (
+  [id_bodega]			Long Integer,
+  [id_tablon_tipo_bodega]			Long Integer,
+  [nombre]			Text (40),
+  [direccion]			Text (60),
+  [fecha_creacion]			DateTime,
+  [id_usuario]			Integer,
+  [vigente]			Text (1)
+
+
+TABLA: caja
+-----------
+  (
+  [id_caja]			Long Integer,
+  [id_tablon_nro_caja]			Long Integer,
+  [id_empresa]			Integer,
+  [id_usuario]			Integer,
+  [monto_apertura]			Long Integer,
+  [fecha_apertura]			Text (20),
+  [fecha_cierre]			Text (20),
+  [monto_total_cierre]			Long Integer,
+  [monto_efectivo]			Long Integer,
+  [monto_tarjeta]			Long Integer,
+  [monto_cheque]			Long Integer,
+  [glosa]			Text (60),
+  [diferencia]			Long Integer,
+  [cerrada]			Text (1),
+  [id_localizacion]			Integer
+
+
+TABLA: caja_movimiento
+----------------------
+  (
+  [id_caja_movimiento]			Long Integer,
+  [fecha]			Text (20),
+  [id_factura]			Long Integer,
+  [id_caja]			Long Integer,
+  [retiro]			Text (1),
+  [monto_efectivo]			Long Integer,
+  [monto_pagado]			Long Integer,
+  [vuelto]			Long Integer,
+  [monto_tarjeta]			Long Integer,
+  [monto_cheque]			Long Integer,
+  [codigo_transbank]			Text (10),
+  [rut_cheque]			Long Integer,
+  [dvr_cheque]			Text (1),
+  [fono_cheque]			Text (16),
+  [nombre_cheque]			Text (40),
+  [banco_cheque]			Text (30),
+  [cte_cheque]			Text (15),
+  [nro_cheque]			Text (12),
+  [fecha_cheque]			Text (20),
+  [abono]			Numeric (10, 0),
+  [saldo]			Numeric (10, 0),
+  [total]			Numeric (10, 0)
+
+
+TABLA: conexion
+---------------
+  (
+  [fecha]			DateTime,
+  [usuario]			Long Integer,
+  [empresa]			Long Integer,
+  [ip]			Text (20),
+  [maquina]			Text (100)
+
+
+TABLA: empresa_usuario
+----------------------
+  (
+  [id_empresa_usuario]			Integer,
+  [id_empresa]			Integer,
+  [id_usuario]			Integer
+
+
+TABLA: factura
+--------------
+  (
+  [id_factura]			Long Integer,
+  [id_tablon_tipo_documento]			Long Integer,
+  [id_sucursal]			Integer,
+  [id_empresa]			Integer,
+  [razon_social]			Text (120),
+  [rut_empresa]			Long Integer,
+  [dvr_empresa]			Text (1),
+  [direccion_empresa]			Text (120),
+  [comuna_empresa]			Text (100),
+  [ciudad_empresa]			Text (100),
+  [folio]			Text (10),
+  [empresa_menor_tamanio]			Text (1),
+  [email_empresa]			Text (120),
+  [telefono_empresa]			Text (20),
+  [giro_empresa]			Text (100),
+  [actividad_economica_empresa]			Text (100),
+  [fecha_documento]			Text (20),
+  [rut_receptor]			Long Integer,
+  [dvr_receptor]			Text (1),
+  [razon_social_receptor]			Text (120),
+  [direccion_receptor]			Text (120),
+  [comuna_receptor]			Text (100),
+  [ciudad_receptor]			Text (100),
+  [giro_receptor]			Text (100),
+  [contacto_receptor]			Text (60),
+  [rut_solicitante]			Long Integer,
+  [dvr_solicitante]			Text (1),
+  [subtotal]			Numeric (12, 0),
+  [descuento]			Numeric (11, 0),
+  [monto_neto]			Numeric (12, 0),
+  [porcentaje_descuento]			Numeric (5, 2),
+  [iva]			Numeric (11, 0),
+  [total]			Numeric (12, 0),
+  [monto_otro_impuesto]			Numeric (11, 0),
+  [id_usuario]			Integer,
+  [fecha_creacion]			Text (20),
+  [fecha_modificacion]			Text (20),
+  [archivo_caf]			Text (100),
+  [archivo_xml]			Text (100),
+  [fecha_firma]			Text (100),
+  [archivo_xml_firma]			Text (100),
+  [id_tablon_estado_factura]			Long Integer,
+  [monto_exento]			Numeric (12, 0),
+  [enviado_sii]			Text (1),
+  [estado_sii]			Text (10),
+  [estado_sii_glosa]			Text (100),
+  [estado_sii_fecha]			Text (20),
+  [estado_receptor]			Text (10),
+  [estado_receptor_glosa]			Text (100),
+  [estado_receptor_fecha]			Text (50),
+  [envio_email]			Text (1),
+  [porcentaje_iva]			Numeric (5, 2),
+  [porcentaje_descuento_exento]			Numeric (5, 2),
+  [descuento_exento]			Numeric (11, 0),
+  [id_tablon_tipo_traspaso]			Long Integer,
+  [id_envio_dte]			Long Integer,
+  [id_tablon_tipo_despacho]			Long Integer,
+  [fecha_vencimiento]			Text (10),
+  [condicion_pago]			Integer,
+  [observaciones]			Text (80),
+  [rut_solicitante_boleta]			Long Integer,
+  [dvr_solicitante_boleta]			Text (1),
+  [id_vendedor]			Integer,
+  [numero_vale]			Long Integer,
+  [rut_conductor]			Text (12),
+  [patente_vehiculo]			Text (12)
+
+
+TABLA: factura_detalle
+----------------------
+  (
+  [id_detalle_factura]			Long Integer,
+  [id_factura]			Long Integer,
+  [id_empresa]			Integer,
+  [codigo_producto]			Text (20),
+  [nombre_producto]			Text (100),
+  [descripcion]			Memo/Hyperlink (255),
+  [cantidad]			Numeric (10, 3),
+  [unidad_medida]			Text (15),
+  [precio]			Numeric (11, 2),
+  [id_impuestos]			Integer,
+  [monto_impuesto_adicional]			Numeric (12, 2),
+  [porcentaje_impuesto]			Numeric (7, 3),
+  [porcentaje_descuento]			Numeric (7, 3),
+  [monto_descuento]			Numeric (10, 0),
+  [exento]			Text (1),
+  [largo]			Numeric (4, 2),
+  [diametro]			Integer,
+  [trozos]			Integer,
+  [subtotal]			Numeric (11, 0)
+
+
+TABLA: factura_exp
+------------------
+  (
+  [id_factura_exp]			Long Integer,
+  [id_factura]			Long Integer,
+  [id_tablon_moneda]			Long Integer,
+  [id_tablon_forma_pago]			Long Integer,
+  [id_tablon_modalidad_venta]			Long Integer,
+  [id_tablon_clausula_venta]			Long Integer,
+  [total_clausula_venta]			Numeric (14, 2),
+  [id_tablon_via_transporte]			Long Integer,
+  [id_tablon_puerto_emb]			Long Integer,
+  [id_tablon_puerto_des]			Long Integer,
+  [id_tablon_unidad_tara]			Long Integer,
+  [id_tablon_unidad_bruto]			Long Integer,
+  [id_tablon_unidad_neto]			Long Integer,
+  [id_tablon_tipo_bultos]			Long Integer,
+  [total_bultos]			Long Integer,
+  [flete]			Numeric (14, 2),
+  [seguro]			Numeric (14, 2),
+  [monto_recargo]			Numeric (14, 2),
+  [porcentaje_recargo]			Numeric (5, 2),
+  [valor_tipo_cambio]			Numeric (14, 2),
+  [subtotal_moneda]			Numeric (14, 2),
+  [total_moneda]			Numeric (14, 2),
+  [id_tablon_pais_des]			Long Integer,
+  [id_tablon_pais_rec]			Long Integer,
+  [pasaporte]			Text (20),
+  [id_tablon_pais_cliente]			Long Integer,
+  [peso_neto]			Numeric (10, 2),
+  [peso_bruto]			Numeric (10, 2),
+  [campo1]			Text (30),
+  [campo2]			Text (30),
+  [campo3]			Text (30),
+  [campo4]			Text (30)
+
+
+TABLA: factura_referencia
+-------------------------
+  (
+  [id_factura_referencia]			Long Integer,
+  [fecha]			DateTime,
+  [id_tablon_tipo_documento]			Long Integer,
+  [id_factura]			Long Integer,
+  [folio]			Text (18),
+  [ind_referencia_global]			Text (1),
+  [glosa]			Text (90),
+  [id_tablon_cod_referencia]			Long Integer
+
+
+TABLA: folio
+------------
+  (
+  [id_folio]			Long Integer,
+  [id_tablon_tipo_doc]			Long Integer,
+  [id_empresa]			Integer,
+  [desde]			Long Integer,
+  [hasta]			Long Integer,
+  [archivo_caf]			Text (200),
+  [fecha_autorizacion]			Text (20)
+
+
+TABLA: folio_disponible
+-----------------------
+  (
+  [folio]			Long Integer,
+  [id_tablon_tipo_doc]			Long Integer,
+  [cantidad]			Integer
+
+
+TABLA: impuesto
+---------------
+  (
+  [id_impuestos]			Integer,
+  [nombre]			Text (60),
+  [porcentaje]			Numeric (5, 2),
+  [fecha_vig_desde]			Text (20),
+  [fecha_vig_hasta]			Text (20)
+
+
+TABLA: movimiento_detalle
+-------------------------
+  (
+  [id_movimiento_detalle]			Long Integer,
+  [id_ubicacion]			Long Integer,
+  [id_producto]			Long Integer,
+  [id_movimiento]			Long Integer,
+  [cantidad]			Numeric (10, 2),
+  [factor]			Integer,
+  [costo]			Numeric (10, 0),
+  [precio]			Numeric (10, 0),
+  [total]			Numeric (11, 0)
+
+
+TABLA: parametro
+----------------
+  (
+  [id_parametro]			Integer,
+  [nombre]			Text (20),
+  [valor]			Text (150),
+  [id_empresa]			Integer
+
+
+TABLA: producto
+---------------
+  (
+  [id_producto]			Long Integer,
+  [codigo]			Text (50),
+  [unidad]			Text (10),
+  [factor_compra]			Integer,
+  [precio_venta]			Numeric (11, 2),
+  [fecha_creacion]			Text (20),
+  [vigente]			Text (1),
+  [id_usuario_creacion]			Integer,
+  [fecha_modificacion]			Text (20),
+  [id_usuario_modificacion]			Integer,
+  [stock_critico]			Numeric (10, 2),
+  [dias_reposion]			Integer,
+  [id_impuestos]			Integer,
+  [afecto_iva]			Text (1),
+  [tiene_impuesto]			Text (1),
+  [precio_venta_boleta]			Numeric (11, 2),
+  [familia]			Long Integer,
+  [subfamilia]			Long Integer,
+  [cod_interno]			Text (20),
+  [vendidos]			Long Integer,
+  [nombre]			Text (80)
+
+
+TABLA: stock
+------------
+  (
+  [id_stock]			Long Integer,
+  [id_ubicacion]			Long Integer,
+  [id_bodega]			Long Integer,
+  [id_producto]			Long Integer,
+  [cantidad]			Numeric (11, 2),
+  [costo]			Numeric (11, 0),
+  [saldo]			Numeric (11, 0),
+  [fecha_creacion]			DateTime,
+  [fecha_modificacion]			DateTime,
+  [id_movimiento]			Long Integer
+
+
+TABLA: subfamilia
+-----------------
+  (
+  [id_subfamilia]			Long Integer,
+  [id_familia]			Long Integer,
+  [nombre]			Text (50),
+  [vigente]			Text (1)
+
+
+TABLA: sucursal
+---------------
+  (
+  [id_sucursal]			Integer,
+  [id_empresa]			Integer,
+  [nombre]			Text (40),
+  [direccion]			Text (100),
+  [comuna]			Text (100),
+  [ciudad]			Text (100),
+  [vigencia]			Text (1),
+  [id_bodega]			Long Integer
+
+
+TABLA: tabla
+------------
+  (
+  [id_tabla]			Integer,
+  [nombre]			Text (100),
+  [campo1]			Text (50),
+  [campo2]			Text (50),
+  [campo3]			Text (50),
+  [vigente]			Text (1)
+
+
+TABLA: tablon
+-------------
+  (
+  [id_tablon]			Long Integer,
+  [nombre]			Text (100),
+  [id_tabla]			Integer,
+  [codigo_sii]			Text (20),
+  [campo1]			Text (50),
+  [campo2]			Text (50),
+  [campo3]			Text (50),
+  [vigente]			Text (1)
+
+
+TABLA: ubicacion
+----------------
+  (
+  [id_ubicacion]			Long Integer,
+  [descripcion]			Text (30),
+  [id_bodega]			Long Integer
+
+
+TABLA: usuario
+--------------
+  (
+  [id_usuario]			Integer,
+  [id_perfil]			Integer,
+  [nombre]			Text (60),
+  [email]			Text (100),
+  [clave]			Text (10),
+  [vigencia]			Text (1),
+  [rut]			Long Integer,
+  [digito]			Text (1),
+  [id_bodega]			Long Integer
+
+
+TABLA: vendedor
+---------------
+  (
+  [id_vendedor]			Long Integer,
+  [nombre]			Text (60),
+  [telefono]			Text (20),
+  [vigente]			Text (1),
+  [rut]			Long Integer,
+  [dvr]			Text (1)
+
+
+TABLA: cliente
+--------------
+  (
+  [id_cliente]			Long Integer,
+  [rut]			Long Integer,
+  [id_vendedor]			Long Integer,
+  [dvr]			Text (1),
+  [razon_social]			Text (120),
+  [direccion]			Text (120),
+  [comuna]			Text (100),
+  [ciudad]			Text (100),
+  [fono]			Text (20),
+  [giro]			Text (100),
+  [monto_credito]			Long Integer,
+  [calificacion]			Integer,
+  [nombre_contacto]			Text (60),
+  [nombre_contacto2]			Text (60),
+  [fono_contacto]			Text (20),
+  [fono_contacto2]			Text (20),
+  [email_contacto1]			Text (60),
+  [email_contacto2]			Text (60),
+  [glosa]			Text (250),
+  [porcentaje_descuento]			Numeric (6, 2),
+  [cond_pago]			Integer,
+  [nro_alumnos]			Long Integer
+
+
+TABLA: empresa
+--------------
+  (
+  [id_empresa]			Integer,
+  [razon_social]			Text (120),
+  [vigencia]			Text (1),
+  [giro]			Text (100),
+  [actividad_economica]			Text (100),
+  [rut]			Long Integer,
+  [dvr]			Text (1),
+  [email]			Text (50),
+  [telefono]			Text (20)
+
+
+TABLA: factura_complemento
+--------------------------
+  (
+  [id_factura]			Long Integer,
+  [id_detalle_factura]			Long Integer,
+  [campo1]			Text (60),
+  [campo2]			Text (60),
+  [campo3]			Text (60),
+  [campo4]			Text (60),
+  [campo5]			Text (60),
+  [campo6]			Text (60),
+  [campo7]			Text (60),
+  [campo8]			Text (120),
+  [campo9]			Text (120),
+  [campo10]			Text (120)
+
+
+TABLA: factura_guia
+-------------------
+  (
+  [id_factura]			Long Integer,
+  [rut_chofer]			Long Integer,
+  [dvr_chofer]			Text (1),
+  [nombre_chofer]			Text (100),
+  [rut_transporte]			Long Integer,
+  [dvr_transporte]			Text (1),
+  [razon_social_transporte]			Text (100),
+  [rut_carguio]			Long Integer,
+  [dvr_carguio]			Text (1),
+  [razon_social_carguio]			Text (100),
+  [rut_cosecha]			Long Integer,
+  [dvr_cosecha]			Text (1),
+  [razon_social_cosecha]			Text (100),
+  [rut_descarguio]			Long Integer,
+  [dvr_descarguio]			Text (1),
+  [razon_social_descarguio]			Text (100),
+  [rut_trasvasige]			Long Integer,
+  [dvr_trasvasige]			Text (1),
+  [razon_social_trasvasige]			Text (100),
+  [volumen_rollizos]			Numeric (12, 3),
+  [patente_camion]			Text (12),
+  [patente_carro]			Text (12),
+  [destino]			Text (100),
+  [glosa]			Text (150)
+
+
+TABLA: familia
+--------------
+  (
+  [id_familia]			Long Integer,
+  [nombre]			Text (30),
+  [vigente]			Text (1)
+
+
+TABLA: movimiento
+-----------------
+  (
+  [id_movimiento]			Long Integer,
+  [id_usuario]			Integer,
+  [tablon_tipo]			Long Integer,
+  [id_bodega]			Long Integer,
+  [fecha]			DateTime,
+  [total_cantidad]			Numeric (10, 2),
+  [total_monto]			Numeric (12, 0),
+  [fecha_creacion]			DateTime,
+  [fecha_modificacion]			DateTime,
+  [rut]			Long Integer,
+  [dvr]			Text (1),
+  [nombre]			Text (120),
+  [direccion]			Text (120),
+  [comuna]			Text (100),
+  [ciudad]			Text (100),
+  [telefono]			Text (20),
+  [email]			Text (60),
+  [glosa]			Text (150),
+  [folio_ref]			Text (25),
+  [fecha_ref]			DateTime,
+  [id_tablon_tipo_documento]			Long Integer
+
+
+TABLA: perfil
+-------------
+  (
+  [id_perfil]			Integer,
+  [nombre]			Text (30),
+  [vigencia]			Text (1),
+  [menu]			Text (100)
+
