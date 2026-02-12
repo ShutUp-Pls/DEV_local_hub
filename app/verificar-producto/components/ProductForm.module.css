@@ -61,24 +61,37 @@
   background-color: rgba(9, 9, 11, 0.5);
   border: 1px solid #27272a;
   border-radius: 0.25rem;
-  padding: 0 0.75rem;
+  padding: 0 2.5rem 0 0.75rem;
   font-size: 0.875rem;
   color: #e4e4e7;
-  transition: border-color 0.2s;
   outline: none;
-  /* Appearance none para quitar flecha por defecto si quisieras, 
-     pero por defecto los select mantienen estilo nativo */
+  
+  /* Quitamos 'transition: all' y dejamos solo el color del borde para que sea sobrio */
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+  /* Reset nativo */
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  
+  /* Icono estático y claro */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%233b82f6' stroke-width='3'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19.5 8.25l-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1rem;
+  cursor: pointer;
 }
 
 .select:focus {
-  /* CAMBIO: De #6366f1 a #3b82f6 */
   border-color: #3b82f6;
   box-shadow: 0 0 0 1px #3b82f6;
+  background-color: #18181b;
+  /* Mantenemos la flecha azul en focus para que no 'parpadee' al blanco */
 }
 
-.select:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+/* Evitamos que el navegador aplique animaciones propias al abrirse */
+.select:active {
+  transform: none;
 }
 
 .inputMoney {
